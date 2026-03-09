@@ -103,6 +103,26 @@ def plot_weights(weights, kernel_names=None, title="Kernel Weights", save_path=N
     plt.show()
 
 
+def _kernel_off_diagonal_stats(K):
+    """Compute off-diagonal statistics of a kernel matrix.
+
+    Used by ablation_n_qubits to measure concentration at each qubit count.
+
+    Returns:
+        Dict with 'mean', 'std', 'variance', 'min', 'max'.
+    """
+    n = K.shape[0]
+    mask = ~np.eye(n, dtype=bool)
+    off_diag = K[mask]
+    return {
+        "mean":     float(np.mean(off_diag)),
+        "std":      float(np.std(off_diag)),
+        "variance": float(np.var(off_diag)),
+        "min":      float(np.min(off_diag)),
+        "max":      float(np.max(off_diag)),
+    }
+
+
 def plot_comparison(results_dict, metric="roc_auc", title=None, save_path=None):
     """Compare multiple models on a metric.
 

@@ -329,3 +329,19 @@ def weight_stability_analysis(
     }
 
     return weights_matrix, summary
+
+
+# ──────────────────────────────────────────────
+# 6. INTERNAL HELPERS (used by ablation.py)
+# ──────────────────────────────────────────────
+
+def _frobenius_alignment(K1, K2):
+    """Frobenius-normalized kernel-target alignment score.
+
+    A(K1, K2) = <K1, K2>_F / sqrt(<K1, K1>_F * <K2, K2>_F)
+
+    Used internally by ablation_n_kernels to rank kernels.
+    """
+    num = np.sum(K1 * K2)
+    denom = np.sqrt(np.sum(K1 * K1) * np.sum(K2 * K2))
+    return float(num / denom) if denom > 0 else 0.0
