@@ -1,0 +1,17 @@
+# Configuration for credit scoring experiment
+
+data:
+  dataset: "german_credit"
+  n_samples: 400
+
+preprocessing:
+  n_components: 8
+
+quantum:
+  n_qubits: 8
+
+mkl:
+  alignment_method: "projection"
+
+evaluation:
+  primary_metric: "roc_auc"

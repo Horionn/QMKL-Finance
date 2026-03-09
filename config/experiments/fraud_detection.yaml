@@ -1,0 +1,19 @@
+# Configuration for fraud detection experiment
+
+data:
+  dataset: "custom"
+  custom_path: "data/raw/fraud_data.csv"
+  target_column: "is_fraud"
+  n_samples: 400
+
+preprocessing:
+  n_components: 10
+
+quantum:
+  n_qubits: 10
+
+mkl:
+  alignment_method: "centered"
+
+evaluation:
+  primary_metric: "roc_auc"

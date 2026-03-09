@@ -1,0 +1,57 @@
+# Default configuration for QMKL experiments
+
+data:
+  dataset: "german_credit"          # german_credit, bank_marketing, or custom
+  test_size: 0.33
+  n_splits: 4                       # K-fold cross-validation
+  n_samples: 400                    # Subsample size (as in IBM paper)
+  n_random_draws: 20                # Number of random dataset draws for robustness
+  random_seed: 42
+
+preprocessing:
+  standardize: true
+  pca: true
+  n_components: 8                   # Number of PCA components = number of qubits
+  feature_range: [0, 2]             # Scaling range for quantum encoding
+
+quantum:
+  n_qubits: 8                       # Determined by n_components
+  simulator: "aer_simulator"        # aer_simulator or ibm_backend
+  shots: 8192
+  entanglement: "linear"
+
+feature_maps:
+  - name: "Z"
+    alpha: [1.4, 2.0, 14.0, 20.0]
+    reps: 1
+  - name: "ZZ"
+    alpha: [2.0, 20.0]
+    reps: 1
+  - name: "XZ"
+    alpha: [0.4, 4.0]
+    reps: 2
+  - name: "PauliFeatureMap"
+    alpha: [0.6, 6.0]
+    reps: 2
+
+kernel:
+  types: ["fidelity", "projected"]
+  projected_gamma: 1.0              # Gamma for projected quantum kernel
+
+mkl:
+  alignment_method: "centered"      # sdp, centered, projection, average, bayesian
+  normalize_weights: true
+
+bayesian_optimization:
+  n_calls: 50                       # Number of BO iterations
+  n_initial_points: 10
+  acq_func: "EI"                    # Expected Improvement
+
+svm:
+  C: 1.0                            # Regularization parameter
+  optimize_C: true
+  C_range: [0.01, 100]
+
+evaluation:
+  metrics: ["roc_auc", "accuracy", "f1", "recall"]
+  primary_metric: "roc_auc"
