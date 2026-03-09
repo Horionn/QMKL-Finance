@@ -137,3 +137,51 @@ def get_feature_map_library(n_qubits, entanglement="linear"):
         library[label] = fm
 
     return library
+
+
+def get_extended_feature_map_library(n_qubits, entanglement="linear"):
+    """Extended library with 20 kernels for comprehensive studies.
+
+    Adds:
+    - 3 alpha values per type (small, medium, large) instead of 2
+    - Full entanglement variants for ZZ
+    - More Pauli combinations
+    """
+    configs = [
+        # ── Z (no entanglement) ─────────────────────────────────────
+        ("Z_a0.5",  "Z",  0.5, 1, "linear"),
+        ("Z_a1.5",  "Z",  1.5, 1, "linear"),
+        ("Z_a4.0",  "Z",  4.0, 1, "linear"),
+        # ── ZZ linear entanglement ──────────────────────────────────
+        ("ZZ_lin_a0.8",  "ZZ", 0.8, 1, "linear"),
+        ("ZZ_lin_a2.0",  "ZZ", 2.0, 1, "linear"),
+        ("ZZ_lin_a5.0",  "ZZ", 5.0, 1, "linear"),
+        # ── ZZ full entanglement ────────────────────────────────────
+        ("ZZ_full_a1.0", "ZZ", 1.0, 1, "full"),
+        ("ZZ_full_a3.0", "ZZ", 3.0, 1, "full"),
+        # ── Pauli Z+ZZ (2 reps) ────────────────────────────────────
+        ("pauli_a0.4",  "pauli",  0.4, 2, "linear"),
+        ("pauli_a1.5",  "pauli",  1.5, 2, "linear"),
+        ("pauli_a4.0",  "pauli",  4.0, 2, "linear"),
+        # ── Pauli X+ZZ ─────────────────────────────────────────────
+        ("pauli_XZ_a0.5", "pauli_XZ", 0.5, 2, "linear"),
+        ("pauli_XZ_a2.0", "pauli_XZ", 2.0, 2, "linear"),
+        ("pauli_XZ_a5.0", "pauli_XZ", 5.0, 2, "linear"),
+        # ── Pauli Y+XX ─────────────────────────────────────────────
+        ("pauli_YXX_a0.5", "pauli_YXX", 0.5, 2, "linear"),
+        ("pauli_YXX_a2.0", "pauli_YXX", 2.0, 2, "linear"),
+        ("pauli_YXX_a5.0", "pauli_YXX", 5.0, 2, "linear"),
+        # ── Pauli Y+ZX ─────────────────────────────────────────────
+        ("pauli_YZX_a0.5", "pauli_YZX", 0.5, 2, "linear"),
+        ("pauli_YZX_a2.0", "pauli_YZX", 2.0, 2, "linear"),
+        ("pauli_YZX_a5.0", "pauli_YZX", 5.0, 2, "linear"),
+    ]
+
+    library = OrderedDict()
+    for label, name, alpha, reps, ent in configs:
+        fm = build_feature_map(
+            name, n_qubits, alpha=alpha, reps=reps, entanglement=ent
+        )
+        library[label] = fm
+
+    return library

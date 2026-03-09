@@ -123,6 +123,211 @@ def _kernel_off_diagonal_stats(K):
     }
 
 
+# ──────────────────────────────────────────────
+# ADVANCED VISUALIZATIONS (Notebook 06)
+# ──────────────────────────────────────────────
+
+def plot_method_comparison_grouped(results_by_dataset, metric="mean",
+                                   title=None, save_path=None):
+    """Grouped bar chart: methods × datasets.
+
+    Args:
+        results_by_dataset: Dict {dataset_name: {method_name: {'mean': float, 'std': float}}}.
+        metric: Key to plot from the inner dict ('mean').
+    """
+    datasets = list(results_by_dataset.keys())
+    methods = list(results_by_dataset[datasets[0]].keys())
+    n_d, n_m = len(datasets), len(methods)
+
+    x = np.arange(n_m)
+    width = 0.8 / n_d
+    colors = plt.cm.Set2(np.linspace(0, 1, n_d))
+
+    fig, ax = plt.subplots(figsize=(max(12, n_m * 1.2), 6))
+    for i, ds in enumerate(datasets):
+        vals = [results_by_dataset[ds][m][metric] for m in methods]
+        errs = [results_by_dataset[ds][m].get("std", 0) for m in methods]
+        offset = (i - n_d / 2 + 0.5) * width
+        ax.bar(x + offset, vals, width, yerr=errs, label=ds,
+               color=colors[i], edgecolor="black", linewidth=0.5, capsize=3)
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(methods, rotation=30, ha="right", fontsize=10)
+    ax.set_ylabel("ROC-AUC", fontsize=12)
+    ax.set_title(title or "Comparaison des méthodes MKL par dataset", fontsize=13)
+    ax.legend(title="Dataset", fontsize=9)
+    ax.grid(axis="y", alpha=0.3)
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches="tight")
+    plt.show()
+
+
+def plot_bo_convergence(histories, title=None, save_path=None):
+    """Plot BO convergence curves (best_so_far vs iteration).
+
+    Args:
+        histories: Dict {label: convergence_history_dict} from
+                   BayesianKernelOptimizer.get_convergence_history().
+    """
+    colors = plt.cm.tab10(np.linspace(0, 1, len(histories)))
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+    # Left: per-iteration scores
+    ax = axes[0]
+    for (label, h), c in zip(histories.items(), colors):
+        ax.scatter(range(len(h["scores"])), h["scores"],
+                   alpha=0.3, color=c, s=15)
+        ax.plot(h["best_so_far"], "-", color=c, linewidth=2, label=label)
+    ax.set_xlabel("Itération BO")
+    ax.set_ylabel("Score CV")
+    ax.set_title("Convergence BO — meilleur score cumulé")
+    ax.legend(fontsize=9)
+    ax.grid(True, alpha=0.3)
+
+    # Right: zoom on last 50% of iterations
+    ax = axes[1]
+    for (label, h), c in zip(histories.items(), colors):
+        mid = len(h["best_so_far"]) // 2
+        ax.plot(range(mid, len(h["best_so_far"])), h["best_so_far"][mid:],
+                "o-", color=c, linewidth=2, markersize=4, label=label)
+    ax.set_xlabel("Itération BO")
+    ax.set_ylabel("Meilleur score cumulé")
+    ax.set_title("Convergence BO — zoom 2ème moitié")
+    ax.legend(fontsize=9)
+    ax.grid(True, alpha=0.3)
+
+    plt.suptitle(title or "Analyse de convergence — Bayesian Optimization", fontsize=13)
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches="tight")
+    plt.show()
+
+
+def plot_weight_heatmap(weights_dict, kernel_names, title=None, save_path=None):
+    """Heatmap of weights: methods (rows) × kernels (columns).
+
+    Args:
+        weights_dict: Dict {method_name: np.array of weights}.
+        kernel_names: List of kernel labels.
+    """
+    methods = list(weights_dict.keys())
+    W = np.array([weights_dict[m] for m in methods])
+
+    fig, ax = plt.subplots(figsize=(max(12, len(kernel_names) * 0.7), max(4, len(methods) * 0.6)))
+    im = sns.heatmap(W, annot=True, fmt=".2f", cmap="YlOrRd",
+                     xticklabels=kernel_names, yticklabels=methods,
+                     ax=ax, cbar_kws={"label": "Poids"},
+                     linewidths=0.5, linecolor="white",
+                     annot_kws={"fontsize": 7})
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right", fontsize=8)
+    ax.set_title(title or "Poids MKL par méthode et kernel", fontsize=13)
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches="tight")
+    plt.show()
+
+
+def plot_scaling_curve(scaling_results, title=None, save_path=None):
+    """n_qubits scaling curve with CI95 band for multiple methods.
+
+    Args:
+        scaling_results: Dict {method_name: {n_qubits: {'mean', 'std', 'scores'}}}.
+    """
+    colors = {"BO": "#e74c3c", "Centered": "#2ecc71", "Single-Best": "#3498db",
+              "Average": "#9b59b6", "SDP": "#f39c12", "Projection": "#1abc9c"}
+    markers = {"BO": "o", "Centered": "s", "Single-Best": "^",
+               "Average": "D", "SDP": "v", "Projection": "p"}
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    for method, data in scaling_results.items():
+        nqs = sorted(data.keys())
+        means = [data[nq]["mean"] for nq in nqs]
+        stds = [data[nq]["std"] for nq in nqs]
+        n_eval = len(data[nqs[0]].get("scores", [1, 2, 3]))
+        ci95 = [1.96 * s / np.sqrt(max(n_eval, 1)) for s in stds]
+
+        c = colors.get(method, "gray")
+        m = markers.get(method, "o")
+        ax.plot(nqs, means, f"{m}-", color=c, linewidth=2, markersize=8, label=method)
+        ax.fill_between(nqs, [mu - ci for mu, ci in zip(means, ci95)],
+                        [mu + ci for mu, ci in zip(means, ci95)],
+                        alpha=0.15, color=c)
+
+    ax.set_xlabel("Nombre de qubits", fontsize=12)
+    ax.set_ylabel("ROC-AUC", fontsize=12)
+    ax.set_title(title or "Scaling — Performance vs nombre de qubits", fontsize=13)
+    ax.legend(fontsize=10)
+    ax.grid(True, alpha=0.3)
+    ax.set_xticks(sorted(list(scaling_results.values())[0].keys()))
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches="tight")
+    plt.show()
+
+
+def plot_concentration_scatter(kernel_stats, kernel_aucs, kernel_names,
+                               title=None, save_path=None):
+    """Scatter: kernel concentration (off-diag std) vs single-kernel AUC.
+
+    Args:
+        kernel_stats: List of dicts from _kernel_off_diagonal_stats.
+        kernel_aucs: List of float AUC scores.
+        kernel_names: List of labels.
+    """
+    stds = [s["std"] for s in kernel_stats]
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    sc = ax.scatter(stds, kernel_aucs, c=kernel_aucs, cmap="RdYlGn",
+                    s=120, edgecolors="black", linewidth=0.8, zorder=3)
+    for i, name in enumerate(kernel_names):
+        ax.annotate(name[:12], (stds[i], kernel_aucs[i]),
+                    textcoords="offset points", xytext=(5, 5),
+                    fontsize=7, alpha=0.8)
+    plt.colorbar(sc, label="ROC-AUC")
+    ax.set_xlabel("Écart-type hors-diagonale (pouvoir discriminant)", fontsize=11)
+    ax.set_ylabel("ROC-AUC (kernel seul)", fontsize=11)
+    ax.set_title(title or "Concentration vs Performance individuelle", fontsize=13)
+    ax.grid(True, alpha=0.3)
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches="tight")
+    plt.show()
+
+
+def plot_radar_chart(metrics_by_method, title=None, save_path=None):
+    """Radar (spider) chart comparing methods on multiple metrics.
+
+    Args:
+        metrics_by_method: Dict {method: {metric_name: value}}.
+    """
+    methods = list(metrics_by_method.keys())
+    metric_names = list(metrics_by_method[methods[0]].keys())
+    n_metrics = len(metric_names)
+
+    angles = np.linspace(0, 2 * np.pi, n_metrics, endpoint=False).tolist()
+    angles += angles[:1]
+
+    colors = plt.cm.Set1(np.linspace(0, 1, len(methods)))
+    fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(polar=True))
+
+    for i, method in enumerate(methods):
+        values = [metrics_by_method[method][m] for m in metric_names]
+        values += values[:1]
+        ax.plot(angles, values, "o-", linewidth=2, label=method, color=colors[i])
+        ax.fill(angles, values, alpha=0.1, color=colors[i])
+
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(metric_names, fontsize=10)
+    ax.set_ylim(0, 1)
+    ax.set_title(title or "Comparaison multi-métriques", fontsize=13, pad=20)
+    ax.legend(loc="upper right", bbox_to_anchor=(1.3, 1.1), fontsize=9)
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches="tight")
+    plt.show()
+
+
 def plot_comparison(results_dict, metric="roc_auc", title=None, save_path=None):
     """Compare multiple models on a metric.
 

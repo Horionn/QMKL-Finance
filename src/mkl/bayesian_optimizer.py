@@ -125,3 +125,46 @@ class BayesianKernelOptimizer:
             "n_iterations": len(self.result_.func_vals),
             "convergence": [-v for v in self.result_.func_vals],
         }
+
+    def get_convergence_history(self):
+        """Return per-iteration scores and cumulative best (for plotting).
+
+        Returns:
+            Dict with:
+            - 'scores': list of scores at each iteration
+            - 'best_so_far': cumulative best score at each iteration
+            - 'n_calls': total iterations
+        """
+        if self.result_ is None:
+            raise RuntimeError("Call optimize() first.")
+
+        scores = [-v for v in self.result_.func_vals]
+        best_so_far = []
+        best = -np.inf
+        for s in scores:
+            best = max(best, s)
+            best_so_far.append(best)
+
+        return {
+            "scores": scores,
+            "best_so_far": best_so_far,
+            "n_calls": len(scores),
+        }
+
+    def get_weight_trajectory(self):
+        """Return the explored weight vectors at each BO iteration.
+
+        Returns:
+            np.ndarray of shape (n_calls, n_kernels).
+        """
+        if self.result_ is None:
+            raise RuntimeError("Call optimize() first.")
+
+        n_kernels = len(self.result_.x) - (1 if self.optimize_C else 0)
+        trajectory = []
+        for params in self.result_.x_iters:
+            raw = np.array(params[:n_kernels])
+            s = raw.sum()
+            w = raw / s if s > 0 else np.ones(n_kernels) / n_kernels
+            trajectory.append(w)
+        return np.array(trajectory)
