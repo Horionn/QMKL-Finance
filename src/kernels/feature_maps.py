@@ -5,6 +5,8 @@ Multiple feature maps with different structures and bandwidths
 form the basis of the multiple kernel learning approach.
 """
 
+from collections import OrderedDict
+
 from qiskit.circuit.library import ZFeatureMap, ZZFeatureMap, PauliFeatureMap
 
 
@@ -96,27 +98,42 @@ def _make_data_map_func(alpha):
 def get_feature_map_library(n_qubits, entanglement="linear"):
     """Generate the full library of feature maps used in the IBM QMKL paper.
 
-    Returns a list of (name, feature_map) tuples covering diverse
+    Returns an OrderedDict {label: feature_map} covering diverse
     Pauli structures and bandwidths.
+
+    Library design rationale:
+    - Each circuit type (Z, ZZ, Pauli variants) appears with 2 alpha values
+    - Small alpha (0.5-2.0): preserves geometric structure, avoids concentration
+    - Large alpha (4.0-8.0): increases expressivity, risk of concentration at high qubits
+    - Very large alpha (14, 20) removed: systematically concentrated → always 0 weight
     """
     configs = [
-        ("Z_a1.4", "Z", 1.4, 1),
-        ("Z_a2.0", "Z", 2.0, 1),
-        ("Z_a14", "Z", 14.0, 1),
-        ("Z_a20", "Z", 20.0, 1),
-        ("ZZ_a2.0", "ZZ", 2.0, 1),
-        ("ZZ_a20", "ZZ", 20.0, 1),
-        ("pauli_XZ_a0.4", "pauli_XZ", 0.4, 2),
-        ("pauli_XZ_a4.0", "pauli_XZ", 4.0, 2),
-        ("pauli_a0.6", "pauli", 0.6, 2),
-        ("pauli_a6.0", "pauli", 6.0, 2),
+        # (label, type, alpha, reps)
+        # ── Single-qubit Z rotations (no entanglement, fast) ────────
+        ("Z_a1.0",  "Z",  1.0, 1),
+        ("Z_a3.0",  "Z",  3.0, 1),
+        # ── Two-body ZZ interactions (linear entanglement) ──────────
+        ("ZZ_a1.0", "ZZ", 1.0, 1),
+        ("ZZ_a4.0", "ZZ", 4.0, 1),
+        # ── Pauli Z+ZZ (standard, 2 reps for depth) ────────────────
+        ("pauli_a0.6",  "pauli",  0.6, 2),
+        ("pauli_a3.0",  "pauli",  3.0, 2),
+        # ── Pauli X+ZZ (cross-terms) ───────────────────────────────
+        ("pauli_XZ_a0.5", "pauli_XZ", 0.5, 2),
+        ("pauli_XZ_a2.5", "pauli_XZ", 2.5, 2),
+        # ── Pauli Y+XX ─────────────────────────────────────────────
         ("pauli_YXX_a0.6", "pauli_YXX", 0.6, 2),
-        ("pauli_YXX_a6.0", "pauli_YXX", 6.0, 2),
+        ("pauli_YXX_a3.0", "pauli_YXX", 3.0, 2),
+        # ── Pauli Y+ZX ─────────────────────────────────────────────
+        ("pauli_YZX_a0.6", "pauli_YZX", 0.6, 2),
+        ("pauli_YZX_a3.0", "pauli_YZX", 3.0, 2),
     ]
 
-    library = []
+    library = OrderedDict()
     for label, name, alpha, reps in configs:
-        fm = build_feature_map(name, n_qubits, alpha=alpha, reps=reps, entanglement=entanglement)
-        library.append((label, fm))
+        fm = build_feature_map(
+            name, n_qubits, alpha=alpha, reps=reps, entanglement=entanglement
+        )
+        library[label] = fm
 
     return library
