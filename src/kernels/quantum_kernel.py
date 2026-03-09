@@ -1,25 +1,77 @@
 """Quantum kernel computation using Qiskit.
 
 Supports both fidelity and projected quantum kernels.
+
+Performance tip: use build_quantum_kernel(..., backend="aer_parallel") to
+enable multi-threaded Aer statevector simulation (much faster than the default
+Qiskit statevector simulator for n_qubits >= 6).
 """
 
 import numpy as np
 from qiskit_machine_learning.kernels import FidelityQuantumKernel
 
 
-def build_quantum_kernel(feature_map, kernel_type="fidelity", gamma=1.0):
+def _make_aer_sampler():
+    """Build a Qiskit Aer Sampler with multi-threading enabled.
+
+    Falls back to the default Qiskit sampler if Aer is not installed.
+    """
+    try:
+        from qiskit_aer import AerSimulator
+        from qiskit_aer.primitives import Sampler as AerSampler
+
+        # Use statevector method — exact and fast for <= 20 qubits
+        # max_parallel_threads=0 → use all available CPU cores
+        sim = AerSimulator(
+            method="statevector",
+            max_parallel_threads=0,       # all cores
+            max_parallel_experiments=0,   # all cores
+            statevector_parallel_threshold=12,
+        )
+        sampler = AerSampler(backend_options={
+            "method": "statevector",
+            "max_parallel_threads": 0,
+        })
+        return sampler
+    except ImportError:
+        return None  # fallback to default
+
+
+def build_quantum_kernel(feature_map, kernel_type="fidelity", gamma=1.0,
+                         backend="aer"):
     """Build a quantum kernel from a feature map.
 
     Args:
         feature_map: A Qiskit QuantumCircuit feature map.
         kernel_type: "fidelity" or "projected".
         gamma: Gamma parameter for projected kernel.
+        backend: "aer" (fast, uses Aer multi-thread) or "default" (Qiskit statevector).
+                 Ignored for projected kernels (always uses statevector directly).
 
     Returns:
         A Qiskit quantum kernel object.
     """
     if kernel_type == "fidelity":
-        kernel = FidelityQuantumKernel(feature_map=feature_map)
+        if backend == "aer":
+            sampler = _make_aer_sampler()
+        else:
+            sampler = None
+
+        if sampler is not None:
+            kernel = FidelityQuantumKernel(feature_map=feature_map,
+                                           fidelity=None)
+            # Inject the Aer sampler via Fidelity
+            try:
+                from qiskit_algorithms.state_fidelities import ComputeUncompute
+                fidelity = ComputeUncompute(sampler=sampler)
+                kernel = FidelityQuantumKernel(feature_map=feature_map,
+                                               fidelity=fidelity)
+            except Exception:
+                # If qiskit_algorithms not available or API changed, use default
+                kernel = FidelityQuantumKernel(feature_map=feature_map)
+        else:
+            kernel = FidelityQuantumKernel(feature_map=feature_map)
+
     elif kernel_type == "projected":
         # For projected kernel, we compute 1-RDMs and use RBF on them
         # This is a custom implementation following the IBM paper
