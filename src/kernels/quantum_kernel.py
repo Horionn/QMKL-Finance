@@ -82,6 +82,32 @@ def build_quantum_kernel(feature_map, kernel_type="fidelity", gamma=1.0,
     return kernel
 
 
+def build_hardware_kernel(feature_map, sampler, pass_manager=None,
+                          max_circuits_per_job=300):
+    """Build a FidelityQuantumKernel for IBM Quantum hardware execution.
+
+    Uses ComputeUncompute fidelity with an IBM Runtime SamplerV2.
+
+    Args:
+        feature_map: Qiskit feature map circuit.
+        sampler: qiskit_ibm_runtime.SamplerV2 instance (or any BaseSamplerV2).
+        pass_manager: Optional transpiler PassManager for the target backend.
+        max_circuits_per_job: Max circuits per hardware batch (avoids timeout).
+
+    Returns:
+        FidelityQuantumKernel configured for hardware execution.
+    """
+    from qiskit_machine_learning.state_fidelities import ComputeUncompute
+
+    fidelity = ComputeUncompute(sampler=sampler, pass_manager=pass_manager)
+    kernel = FidelityQuantumKernel(
+        feature_map=feature_map,
+        fidelity=fidelity,
+        max_circuits_per_job=max_circuits_per_job,
+    )
+    return kernel
+
+
 class ProjectedQuantumKernel:
     """Projected quantum kernel following Huang et al.
 

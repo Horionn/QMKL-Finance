@@ -328,6 +328,134 @@ def plot_radar_chart(metrics_by_method, title=None, save_path=None):
     plt.show()
 
 
+def plot_pairwise_significance(pvalues, effect_sizes=None, method_names=None,
+                                alpha=0.05, title=None, save_path=None):
+    """Plot a pairwise significance heatmap (p-values + effect sizes).
+
+    Lower triangle: p-values with significance markers.
+    Upper triangle: Cohen's d effect sizes (if provided).
+    Diagonal: method names.
+
+    Args:
+        pvalues: Dict of dicts {A: {B: p_value}} from pairwise_wilcoxon.
+        effect_sizes: Dict of dicts {A: {B: d}} (optional).
+        method_names: List of method names (order).
+        alpha: Significance threshold (default 0.05).
+    """
+    if method_names is None:
+        method_names = list(pvalues.keys())
+
+    n = len(method_names)
+    p_matrix = np.ones((n, n))
+    d_matrix = np.zeros((n, n))
+
+    for i, a in enumerate(method_names):
+        for j, b in enumerate(method_names):
+            if a in pvalues and b in pvalues[a]:
+                p_matrix[i, j] = pvalues[a][b]
+            if effect_sizes and a in effect_sizes and b in effect_sizes[a]:
+                d_matrix[i, j] = effect_sizes[a][b]
+
+    fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+
+    # Left: p-value heatmap
+    ax = axes[0]
+    mask_diag = np.eye(n, dtype=bool)
+    annot = np.empty((n, n), dtype=object)
+    for i in range(n):
+        for j in range(n):
+            if i == j:
+                annot[i, j] = ''
+            else:
+                p = p_matrix[i, j]
+                stars = '***' if p < 0.001 else '**' if p < 0.01 else '*' if p < alpha else 'ns'
+                annot[i, j] = f'{p:.3f}\n{stars}'
+
+    sns.heatmap(p_matrix, annot=annot, fmt='', cmap='RdYlGn_r',
+                xticklabels=method_names, yticklabels=method_names,
+                ax=ax, linewidths=0.5, vmin=0, vmax=0.2,
+                mask=mask_diag, annot_kws={'fontsize': 8})
+    ax.set_title('p-values Wilcoxon (ligne > colonne)\n*** p<0.001  ** p<0.01  * p<0.05')
+
+    # Right: Effect size heatmap
+    ax = axes[1]
+    if effect_sizes:
+        annot_d = np.empty((n, n), dtype=object)
+        for i in range(n):
+            for j in range(n):
+                if i == j:
+                    annot_d[i, j] = ''
+                else:
+                    d = d_matrix[i, j]
+                    label = 'large' if abs(d) >= 0.8 else 'medium' if abs(d) >= 0.5 else 'small' if abs(d) >= 0.2 else 'negl.'
+                    annot_d[i, j] = f'{d:.2f}\n({label})'
+
+        sns.heatmap(d_matrix, annot=annot_d, fmt='', cmap='RdBu_r', center=0,
+                    xticklabels=method_names, yticklabels=method_names,
+                    ax=ax, linewidths=0.5, mask=mask_diag,
+                    annot_kws={'fontsize': 8})
+        ax.set_title("Cohen's d (ligne vs colonne)\n>0 = ligne meilleure, <0 = colonne meilleure")
+    else:
+        ax.set_visible(False)
+
+    plt.suptitle(title or 'Tests statistiques pairwise', fontsize=13)
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()
+
+
+def plot_classical_vs_quantum(results_classical, results_quantum, dataset_names,
+                               title=None, save_path=None):
+    """Side-by-side comparison of classical and quantum MKL results.
+
+    Args:
+        results_classical: Dict {dataset: {'mean': float, 'std': float}}.
+        results_quantum: Dict {dataset: {method: {'mean', 'std'}}}.
+        dataset_names: List of dataset names.
+    """
+    fig, axes = plt.subplots(1, len(dataset_names), figsize=(6*len(dataset_names), 5),
+                             squeeze=False)
+
+    for ax, ds in zip(axes[0], dataset_names):
+        # Quantum methods
+        q_methods = list(results_quantum[ds].keys())
+        q_means = [results_quantum[ds][m]['mean'] for m in q_methods]
+        q_stds = [results_quantum[ds][m]['std'] for m in q_methods]
+
+        # Classical baselines
+        c_methods = list(results_classical[ds].keys())
+        c_means = [results_classical[ds][m]['mean'] for m in c_methods]
+        c_stds = [results_classical[ds][m]['std'] for m in c_methods]
+
+        all_names = c_methods + q_methods
+        all_means = c_means + q_means
+        all_stds = c_stds + q_stds
+
+        colors = ['#95a5a6'] * len(c_methods) + ['#3498db'] * len(q_methods)
+        y_pos = range(len(all_names))
+
+        ax.barh(y_pos, all_means, xerr=all_stds, color=colors,
+                edgecolor='black', linewidth=0.5, capsize=3, height=0.6)
+        ax.set_yticks(y_pos)
+        ax.set_yticklabels(all_names, fontsize=9)
+        ax.set_xlabel('ROC-AUC')
+        ax.set_title(ds, fontsize=11)
+        ax.grid(axis='x', alpha=0.3)
+
+        # Add legend
+        from matplotlib.patches import Patch
+        ax.legend(handles=[Patch(color='#95a5a6', label='Classique'),
+                           Patch(color='#3498db', label='Quantique')],
+                  fontsize=8, loc='lower right')
+
+    plt.suptitle(title or 'Classique vs Quantique', fontsize=13)
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()
+
+
 def plot_comparison(results_dict, metric="roc_auc", title=None, save_path=None):
     """Compare multiple models on a metric.
 

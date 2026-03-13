@@ -97,10 +97,26 @@ def load_custom_csv(path, target_column, n_samples=None, random_state=42):
     return X, y
 
 
+def load_synthetic(n_samples=None, random_state=42):
+    """Generate a synthetic binary classification dataset.
+
+    Mimics a financial fraud detection scenario with moderate difficulty.
+    """
+    n = n_samples or 500
+    X, y = make_classification(
+        n_samples=n, n_features=15, n_informative=8,
+        n_redundant=4, n_clusters_per_class=2,
+        flip_y=0.05, class_sep=0.8,
+        weights=[0.6, 0.4], random_state=random_state,
+    )
+    return X.astype(np.float64), y
+
+
 DATASET_REGISTRY = {
     "german_credit": load_german_credit,
     "bank_marketing": load_bank_marketing,
     "iris_binary": load_iris_binary,
+    "synthetic": load_synthetic,
 }
 
 
