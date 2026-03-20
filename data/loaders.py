@@ -64,6 +64,23 @@ def load_bank_marketing(n_samples=None, random_state=42):
     return X, y
 
 
+def load_breast_cancer(n_samples=None, random_state=42):
+    """Load the Breast Cancer Wisconsin dataset.
+
+    Binary classification: malignant (1) vs benign (0).
+    30 features, 569 instances. Available directly in scikit-learn.
+    """
+    from sklearn.datasets import load_breast_cancer as _load
+    data = _load()
+    X = data.data.astype(np.float64)
+    y = data.target  # 0=malignant, 1=benign — we keep as-is
+
+    if n_samples and n_samples < len(X):
+        X, y = resample(X, y, n_samples=n_samples, random_state=random_state, stratify=y)
+
+    return X, y
+
+
 def load_iris_binary(n_samples=None, random_state=42):
     """Load Iris dataset reduced to binary classification (setosa vs non-setosa)."""
     from sklearn.datasets import load_iris
@@ -115,6 +132,7 @@ def load_synthetic(n_samples=None, random_state=42):
 DATASET_REGISTRY = {
     "german_credit": load_german_credit,
     "bank_marketing": load_bank_marketing,
+    "breast_cancer": load_breast_cancer,
     "iris_binary": load_iris_binary,
     "synthetic": load_synthetic,
 }

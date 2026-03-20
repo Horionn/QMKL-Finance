@@ -1,0 +1,7 @@
+\babel@toc {french}{}\relax 
+\beamer@sectionintoc {1}{Contexte et approche}{3}{0}{1}
+\beamer@sectionintoc {2}{Résultats principaux}{7}{0}{2}
+\beamer@sectionintoc {3}{Comparaison des stratégies QMKL}{10}{0}{3}
+\beamer@sectionintoc {4}{Notre contribution : QMKL-Boost}{14}{0}{4}
+\beamer@sectionintoc {5}{Limites : concentration et matériel}{16}{0}{5}
+\beamer@sectionintoc {6}{Bilan et recommandations}{20}{0}{6}

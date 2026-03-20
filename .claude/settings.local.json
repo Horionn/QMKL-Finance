@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd:*)",
+      "Bash(python3:*)",
+      "WebSearch(*)",
+      "WebFetch(*)",
+      "Bash(winget upgrade:*)",
+      "Bash(.venv/Scripts/python -c \"import pptx; print\\(pptx.__version__\\)\")",
+      "Bash(.venv/Scripts/pip install:*)",
+      "Bash(.venv/Scripts/python make_presentation.py 2>&1)",
+      "Bash(where pdflatex:*)",
+      "Read(//c/Program Files/**)",
+      "Read(//c//**)",
+      "Read(//c/Users/Raph/AppData/**)",
+      "Bash(cmd.exe /c \"where pdflatex\" 2>&1; cmd.exe /c \"where miktex\" 2>&1; cmd.exe /c \"where latex\" 2>&1)",
+      "Bash(cmd.exe /c \"winget search latex --source winget 2>&1\" | head -20)",
+      "Bash(cmd.exe /c \"winget search MiKTeX\" 2>&1 && cmd.exe /c \"winget search tectonic\" 2>&1)",
+      "Bash(cmd.exe /c \"winget search MiKTeX && echo DONE\" 2>&1; echo \"exit: $?\")",
+      "Bash(.venv/Scripts/pip show:*)",
+      "Bash(where pandoc:*)",
+      "Bash(ls:*)",
+      "Bash(cmd.exe /c \"winget install --id MiKTeX.MiKTeX --accept-package-agreements --accept-source-agreements\" 2>&1)",
+      "Bash(python:*)",
+      "Bash(find:*)",
+      "Bash(.venv/Scripts/python gen_kernel_slides.py)",
+      "Bash(grep:*)",
+      "Bash(git push:*)"
+    ]
+  }
+}

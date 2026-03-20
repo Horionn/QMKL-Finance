@@ -1,0 +1,625 @@
+% ============================================================
+%  QMKL-Finance — Présentation investisseur bancaire
+%  Beamer Madrid 16:9 — Mars 2026
+% ============================================================
+\documentclass[aspectratio=169]{beamer}
+
+\usetheme{Madrid}
+\usecolortheme[RGB={10,80,140}]{structure}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{colortbl}
+\usepackage{xcolor}
+\usepackage{array}
+\usepackage{multirow}
+
+\graphicspath{{./}}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{itemize item}[circle]
+\setbeamertemplate{itemize subitem}[triangle]
+
+\definecolor{qblue}{RGB}{10,80,140}
+\definecolor{okgreen}{RGB}{0,130,60}
+\definecolor{badred}{RGB}{200,40,40}
+\definecolor{amber}{RGB}{200,130,0}
+
+\newcommand{\good}[1]{\textcolor{okgreen}{\textbf{#1}}}
+\newcommand{\bad}[1]{\textcolor{badred}{\textbf{#1}}}
+\newcommand{\amb}[1]{\textcolor{amber}{\textbf{#1}}}
+
+% ── Métadonnées ──────────────────────────────────────────
+\title{Machine Learning Quantique pour la Finance}
+\subtitle{Bilan empirique complet — QMKL sur données réelles}
+\author{}
+\institute{3 datasets financiers $\cdot$ 19 méthodes comparées $\cdot$ 20 runs par expérience}
+\date{Mars 2026}
+
+% ─────────────────────────────────────────────────────────
+\begin{document}
+
+% ── Titre ────────────────────────────────────────────────
+\begin{frame}
+  \titlepage
+\end{frame}
+
+% ── Plan ─────────────────────────────────────────────────
+\begin{frame}{Plan}
+  \tableofcontents
+\end{frame}
+
+% =============================================================
+\section{Contexte et approche}
+% =============================================================
+
+\begin{frame}{Pourquoi le Machine Learning Quantique en finance ?}
+  \begin{columns}[T]
+    \column{0.50\textwidth}
+      \textbf{L'hypothèse quantique}\\[6pt]
+      Les circuits quantiques encodent les données
+      dans un espace de très haute dimension,
+      potentiellement \textbf{inaccessible aux algorithmes classiques}.
+
+      \bigskip
+      En pratique : capturer des corrélations non-linéaires
+      dans les données de risque (crédit, marché, fraude).
+
+      \bigskip
+      \begin{block}{Notre question centrale}
+        Est-ce que ça apporte un avantage \emph{mesurable}
+        sur des données financières réelles aujourd'hui ?
+      \end{block}
+
+    \column{0.48\textwidth}
+      \textbf{Notre méthode : QMKL}\\[6pt]
+      \textbf{Quantum Multiple Kernel Learning} combine
+      plusieurs \emph{kernels quantiques} — chacun encode
+      les données différemment dans un circuit quantique.
+
+      \bigskip
+      \begin{enumerate}
+        \item Les données client sont encodées en qubits
+        \item On calcule la similarité quantique entre clients
+        \item Un SVM classe les clients selon cette similarité
+        \item On combine 12 kernels différents pour plus de robustesse
+      \end{enumerate}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Les 3 datasets financiers testés}
+  \begin{columns}[T]
+    \column{0.32\textwidth}
+      \begin{block}{German Credit}
+        \textbf{Risque de crédit}\\[3pt]
+        \small
+        1\,000 clients · 20 variables\\
+        30\,\% de défauts\\[4pt]
+        Tâche : prédire si un\\
+        client va faire défaut\\[4pt]
+        \textit{Cas d'usage bancaire direct}
+      \end{block}
+
+    \column{0.32\textwidth}
+      \begin{block}{Bank Marketing}
+        \textbf{Score marketing}\\[3pt]
+        \small
+        45\,000 contacts · 16 variables\\
+        11\,\% de succès (déséquilibré)\\[4pt]
+        Tâche : prédire si un\\
+        client souscrit un dépôt\\[4pt]
+        \textit{Ciblage client, fidélisation}
+      \end{block}
+
+    \column{0.32\textwidth}
+      \begin{block}{Breast Cancer}
+        \textbf{Benchmark médical}\\[3pt]
+        \small
+        569 patients · 30 variables\\
+        Bien séparable (AUC $>$ 0.99)\\[4pt]
+        Utilisé comme référence :\\
+        mesurer la limite haute\\[4pt]
+        \textit{Cas favorable au quantique}
+      \end{block}
+  \end{columns}
+
+  \bigskip
+  \begin{center}
+    \small
+    Métrique : \textbf{AUC} (aire sous la courbe ROC)
+    \quad \textbf{0.5} = aléatoire \quad \textbf{1.0} = parfait\\
+    Tous les résultats : moyenne sur \textbf{20 répétitions}
+    avec des splits aléatoires différents
+  \end{center}
+\end{frame}
+
+\begin{frame}{Comment les données sont encodées dans un circuit quantique}
+  \begin{columns}[T]
+    \column{0.54\textwidth}
+      \includegraphics[width=\linewidth]{results/presentation/pres_F_circuit.png}
+    \column{0.44\textwidth}
+      \textbf{PauliFeatureMap ZZ} — le cœur de l'encodage\\[8pt]
+      \begin{enumerate}\small
+        \item \textbf{Superposition} (portes H) : chaque qubit
+              explore simultanément 0 et 1
+        \item \textbf{Encodage individuel} $R_z(2\alpha x_i)$ :
+              chaque variable financière tourne un qubit
+        \item \textbf{Encodage des interactions} $R_z(2\alpha x_i x_j)$ :
+              corrélations \emph{non-linéaires} via l'intrication
+      \end{enumerate}
+      \medskip
+      \begin{block}{Similarité quantique}
+        \small
+        $K(x,x') = |\langle\psi(x')|\psi(x)\rangle|^2$\\[2pt]
+        Clients proches $\Rightarrow$ états quantiques similaires
+      \end{block}
+      \medskip
+      \small $\alpha$ : \textbf{largeur de bande} du kernel
+      (analogue au $\gamma$ du RBF classique).
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Les 12 kernels quantiques : 6 familles d'encodage}
+  \begin{center}
+    \includegraphics[width=0.96\linewidth]{results/presentation/pres_F_kernels.png}
+  \end{center}
+  \vspace{-4pt}
+  \begin{columns}[T]
+    \column{0.50\textwidth}
+      \small
+      Chaque \textbf{famille} correspond à un choix d'opérateurs de Pauli
+      qui détermine \emph{quelles} corrélations sont capturées.\\[4pt]
+      Pour chaque famille : \textbf{2 valeurs de $\alpha$}
+      (petit = bande large, grand = bande étroite).
+    \column{0.48\textwidth}
+      \small
+      \begin{block}{Pourquoi 12 kernels ?}
+        Aucun kernel unique n'est optimal sur tous les datasets.
+        QMKL les \textbf{combine} pour obtenir une représentation
+        plus riche qu'un seul circuit.
+      \end{block}
+  \end{columns}
+\end{frame}
+
+% =============================================================
+\section{Résultats principaux}
+% =============================================================
+
+\begin{frame}{Résultat 1 — QMKL vs méthodes classiques}
+  \begin{center}
+    \includegraphics[width=0.90\textwidth]{results/presentation/pres_F1_main_results.png}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Résultat 2 — Classement détaillé sur German Credit}
+  \begin{columns}[T]
+    \column{0.58\textwidth}
+      \includegraphics[width=\linewidth]{results/presentation/pres_F6_german_ranking.png}
+
+    \column{0.40\textwidth}
+      \textbf{Ce que montre ce classement}\\[6pt]
+      \begin{itemize}
+        \item Les \textbf{3 premiers sont tous classiques}\\
+              RBF-SVM, Forêt aléatoire, Régression
+        \item La meilleure méthode QMKL (Average)\\
+              est \bad{4\textsuperscript{ème}}, à \bad{$-7$ pts} du leader
+        \item Les stratégies QMKL avancées (VQKL, QKRR)\\
+              ne rattrapent pas les classiques
+        \item Single-Best est le pire QMKL :\\
+              un seul kernel ne suffit pas
+      \end{itemize}
+
+      \bigskip
+      \begin{alertblock}{Conclusion}
+        \small Sur German Credit (risque crédit),
+        aucune méthode QMKL ne dépasse\\
+        RBF-SVM ou la forêt aléatoire.
+      \end{alertblock}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Résultat 3 — Plus de données n'efface pas l'écart}
+  \begin{columns}[T]
+    \column{0.60\textwidth}
+      \includegraphics[width=\linewidth]{results/presentation/pres_F11_learning_curves.png}
+
+    \column{0.38\textwidth}
+      \textbf{Question clé}\\[4pt]
+      QMKL rattrape-t-il les classiques
+      avec plus de données d'entraînement ?
+
+      \bigskip
+      \textbf{Réponse : non.}\\[4pt]
+      \begin{itemize}
+        \item Les trois méthodes progressent\\
+              à la même vitesse
+        \item L'écart de $\approx$7 pts reste\\
+              \textbf{constant} de 40 à 200 clients
+        \item Il ne s'agit pas d'un problème\\
+              de manque de données
+      \end{itemize}
+
+      \bigskip
+      \begin{alertblock}{Implication}
+        \small C'est une limite \textbf{structurelle} des
+        circuits quantiques Pauli sur
+        données tabulaires, pas un artefact statistique.
+      \end{alertblock}
+  \end{columns}
+\end{frame}
+
+% =============================================================
+\section{Comparaison des stratégies QMKL}
+% =============================================================
+
+\begin{frame}{Les 5 stratégies QMKL face à face}
+  \begin{center}
+    \includegraphics[width=0.90\textwidth]{results/presentation/pres_F5_qmkl_strategies.png}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Quelle stratégie QMKL choisir ?}
+  \begin{columns}[T]
+    \column{0.50\textwidth}
+      \small
+      \begin{tabular}{p{2.5cm}p{1.4cm}p{2.2cm}}
+        \toprule
+        \textbf{Stratégie} & \textbf{AUC} & \textbf{Coût calcul} \\
+        \midrule
+        \good{Average}     & \good{0.763} & Nul \\
+        Centered Align.    & 0.750        & Très faible \\
+        Bay.\ Optim.       & 0.758        & \bad{200$\times$ plus cher} \\
+        QKRR               & 0.756        & Faible \\
+        VQKL               & 0.704        & Moyen \\
+        \midrule
+        \multicolumn{3}{l}{\footnotesize\textit{German Credit · N=200 · Q=6 qubits}} \\
+        \bottomrule
+      \end{tabular}
+
+      \medskip\small
+      \textbf{Sur German Credit, Average est ici la meilleure\\
+      méthode QMKL} — malgré sa simplicité.\\[2pt]
+      BO dépense 200$\times$ plus pour seulement +0.8 pt.
+
+    \column{0.48\textwidth}
+      \textbf{3 enseignements}\\[6pt]
+      \begin{enumerate}
+        \item \good{Average} est la \textbf{meilleure méthode QMKL}\\
+              sur German Credit (risque crédit) :\\
+              la plus simple \emph{et} la plus performante
+
+        \bigskip
+        \item \good{Centered Alignment} est meilleur sur\\
+              Bank Marketing (+3.8 pts vs Average) —\\
+              solution analytique, sans hyperparamètre
+
+        \bigskip
+        \item \bad{Bayesian Optim.} coûte 200$\times$ plus\\
+              cher pour un gain de seulement +0.8 pt\\
+              sur German Credit — non recommandé
+      \end{enumerate}
+
+      \begin{block}{Recommandation}
+        \small \textbf{Average} sur risque crédit.\\
+        \textbf{Centered Alignment} si on veut s'adapter\\
+        à la structure propre du dataset.
+      \end{block}
+  \end{columns}
+\end{frame}
+
+
+\begin{frame}{Comment fonctionne chaque stratégie QMKL ?}
+  \begin{columns}[T]
+    \column{0.50\textwidth}
+      \begin{block}{Average — Moyenne uniforme}
+        \footnotesize $K_{mkl} = \tfrac{1}{M}\sum_m K_m$ \hfill \good{Le plus simple}\\[1pt]
+        Tous les kernels ont le même poids.\\
+        Aucun paramètre à ajuster.
+      \end{block}
+      \smallskip
+      \begin{block}{Centered Alignment}
+        \footnotesize Poids $w_m^*$ calculés analytiquement\\
+        en maximisant $\langle K_{mkl},\, yy^\top \rangle_F$.\\
+        \good{Solution fermée, sans optimisation.}
+      \end{block}
+      \smallskip
+      \begin{block}{Bayesian Optimization}
+        \footnotesize Poids $w_m \in [0,1]$ optimisés par cross-val.\\
+        \bad{200$\times$ plus lent} pour +0.8 pt vs Average.
+      \end{block}
+
+    \column{0.48\textwidth}
+      \begin{block}{QMKL-Boost \textnormal{\footnotesize(notre contribution)}}
+        \footnotesize Sélection \textbf{binaire} par QUBO :\\
+        $\min_{w\in\{0,1\}^M}\!-\!\sum_m w_m s_m + \lambda\!\sum_{m\neq m'}\! w_m w_{m'} A_{mm'}$\\[2pt]
+        $s_m$ = AUC kernel $m$ \quad $A_{mm'}$ = redondance\\
+        \good{+4.1 pts AUC, 2 kernels sur 12 sélectionnés}
+      \end{block}
+      \smallskip
+      \begin{block}{VQKL — Variationnel}
+        \footnotesize Poids appris par gradient descent.\\
+        \bad{Surapprentissage} sur N=200 — pire qu'Average.
+      \end{block}
+      \smallskip
+      \begin{alertblock}{Enseignement clé}
+        \footnotesize La complexité algorithmique ne paie pas.\\
+        L'avantage est dans la \textbf{diversité des kernels},\\
+        pas dans l'optimisation des poids.
+      \end{alertblock}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Quels kernels apportent le plus ? (Analyse Shapley)}
+  \begin{columns}[T]
+    \column{0.57\textwidth}
+      \includegraphics[width=\linewidth]{results/presentation/pres_F8_shapley.png}
+
+    \column{0.41\textwidth}
+      \textbf{Lecture}\\[6pt]
+      La valeur de Shapley mesure la \emph{contribution}
+      marginale de chaque kernel à la performance QMKL.
+      Un kernel avec contribution négative \textbf{dégrade}
+      la combinaison.
+
+      \bigskip
+      \textbf{Pourquoi ZZ $\alpha$=4.0 domine ?}\\[4pt]
+      C'est le kernel \textbf{le plus différent} des autres —
+      il apporte une information complémentaire
+      que les autres kernels ne couvrent pas.
+
+      \bigskip
+      \begin{block}{Règle clé}
+        \small $r = 0.738$ entre diversité des kernels
+        et gain QMKL.\\
+        \textbf{Diversité $>$ quantité.}
+      \end{block}
+  \end{columns}
+\end{frame}
+
+% =============================================================
+\section{Notre contribution : QMKL-Boost}
+% =============================================================
+
+\begin{frame}{QMKL-Boost — sélection intelligente des kernels}
+  \begin{columns}[T]
+    \column{0.44\textwidth}
+      \textbf{Le problème}\\[4pt]
+      \small Moyenner 12 kernels uniformément dilue
+      l'information utile avec du bruit des kernels
+      redondants ou contre-productifs.
+
+      \medskip
+      \textbf{Notre approche}\\[4pt]
+      \small Un \textbf{algorithme QUBO} — même famille
+      que les optimiseurs QPU Pasqal / IBM —
+      sélectionne les \textbf{2 kernels les plus
+      complémentaires} parmi les 12.
+
+      \medskip
+      \begin{exampleblock}{Résultats (N=150)}
+        \small
+        German Credit : \textbf{+4.1 pts AUC}\\
+        Bank Marketing : \textbf{+7.6 pts AUC}\\[2pt]
+        2 kernels sélectionnés sur 12 :\\
+        \texttt{ZZ a=2.5} + \texttt{XZ a=0.5}
+      \end{exampleblock}
+
+    \column{0.54\textwidth}
+      \includegraphics[width=\linewidth]{results/presentation/pres_F2_qmkl_boost.png}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Comment QUBO trouve les bons kernels}
+  \begin{columns}[T]
+    \column{0.55\textwidth}
+      \includegraphics[width=\linewidth]{results/presentation/pres_F10_lambda_sweep.png}
+
+    \column{0.43\textwidth}
+      \textbf{Le paramètre $\lambda$ contrôle}\\
+      \textbf{le compromis diversité / performance}\\[6pt]
+      \begin{itemize}
+        \item $\lambda=0$ : sélectionne tous les kernels\\
+              avec le meilleur score individuel\\
+              (parfois redondants)
+        \item $\lambda=1$ : \good{optimal} — 2 kernels de\\
+              familles différentes, complémentaires
+        \item $\lambda$ trop grand : 1 seul kernel,\\
+              trop peu d'information
+      \end{itemize}
+
+      \bigskip
+      \textbf{Kernels sélectionnés à $\lambda^*=1$ :}\\[4pt]
+      \small \texttt{ZZ a=2.5} (entrelacement fort) +\\
+      \texttt{XZ a=0.5} (encodage mixte)\\[4pt]
+      $\Rightarrow$ deux familles différentes,\\
+      \phantom{$\Rightarrow$} diversité maximale avec seulement 2 kernels.
+  \end{columns}
+\end{frame}
+
+% =============================================================
+\section{Limites : concentration et matériel}
+% =============================================================
+
+\begin{frame}{La limite fondamentale : barren plateaus}
+  \begin{columns}[T]
+    \column{0.57\textwidth}
+      \includegraphics[width=\linewidth]{results/presentation/pres_F9_concentration.png}
+
+    \column{0.41\textwidth}
+      \textbf{Qu'est-ce qu'un barren plateau ?}\\[6pt]
+      À mesure qu'on ajoute des qubits, les valeurs
+      du kernel quantique se concentrent vers zéro —
+      les données deviennent \textbf{indiscernables}
+      pour le circuit.
+
+      \medskip
+      \begin{itemize}
+        \item De Q=2 à Q=8 :\\
+              \bad{$-60\,\%$} de variance utile
+        \item Les kernels locaux réduisent\\
+              ce problème de 40\,\%
+        \item Problème \textbf{ouvert} en recherche
+      \end{itemize}
+
+      \medskip
+      \begin{alertblock}{Pour la banque}
+        \small Augmenter le nombre de qubits
+        ne garantit \emph{pas} d'améliorer la performance.
+      \end{alertblock}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Test sur IBM Torino — performance des kernels réels vs simulation}
+  \begin{columns}[T]
+    \column{0.60\textwidth}
+      \includegraphics[width=\linewidth]{results/07/F05_single_kernel_auc.png}
+    \column{0.38\textwidth}
+      \textbf{Setup expérimental}\\[4pt]
+      \small Backend : \textbf{IBM Torino} (Heron r2, 133 qubits)\\
+      Shots : 1\,024 / circuit\\
+      N=30 échantillons, Q=4 qubits\\
+      3 kernels : ZZ($\alpha$=1), ZZ($\alpha$=4), XZ($\alpha$=0.5)\\[6pt]
+
+      \textbf{Observations :}\\[4pt]
+      \begin{itemize}
+        \item \amb{ZZ($\alpha$=1)} : HW $>$ Sim (+6.5 pts)\\
+              bruit bénéfique (régularisation)
+        \item \bad{ZZ($\alpha$=4)} : AUC $<$ 0.50\\
+              kernel trop concentré
+        \item \bad{XZ} : dégradation sur HW ($-$2.5 pts)
+      \end{itemize}
+      \medskip
+      \begin{alertblock}{\small Verdict}
+        \small Résultats \textbf{incohérents} entre kernels.\\
+        Comportement imprévisible sur QPU réel.
+      \end{alertblock}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{IBM Torino — Robustesse des stratégies MKL face au bruit}
+  \begin{columns}[T]
+    \column{0.60\textwidth}
+      \includegraphics[width=\linewidth]{results/07/F06_mkl_comparison.png}
+    \column{0.38\textwidth}
+      \textbf{Quelle stratégie survit au bruit QPU ?}\\[4pt]
+      \footnotesize
+      \begin{tabular}{lcc}
+        \toprule
+        \textbf{Méthode} & \textbf{Sim} & \textbf{HW} \\
+        \midrule
+        \good{Centered}  & 0.735 & \good{0.735} \\
+        \good{BO}        & 0.580 & \good{0.670} \\
+        \amb{Average}    & 0.575 & \amb{0.475} \\
+        \bad{Projection} & 0.435 & \bad{0.225} \\
+        \midrule
+        \textit{RBF-SVM} & \multicolumn{2}{c}{\textit{0.775}} \\
+        \bottomrule
+      \end{tabular}
+      \smallskip
+
+      \small\textbf{Centered} est la seule méthode
+      \good{stable} sim = hw (0.735).\\[3pt]
+      Average perd 10 pts sur QPU réel.\\[3pt]
+      \begin{alertblock}{Implication}
+        \footnotesize Même sur QPU réel, QMKL reste\\
+        \bad{$-$4 pts} sous RBF-SVM classique.
+      \end{alertblock}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{IBM Torino — Récapitulatif : sim vs hardware vs classique}
+  \begin{columns}[T]
+    \column{0.62\textwidth}
+      \includegraphics[width=\linewidth]{results/07/F10_dashboard.png}
+    \column{0.36\textwidth}
+      \textbf{Que retenir de l'expérience QPU ?}\\[5pt]
+      \small
+      \begin{itemize}
+        \item \good{Matrices kernel} : structure globale\\
+              préservée ($\rho > 0.99$ entre sim et hw)
+        \item \amb{Erreur relative} : 8–12\% sur les\\
+              éléments off-diagonaux (bruit de mesure)
+        \item \good{Centered MKL} : robuste au bruit,\\
+              AUC identique sim = hw = 0.735
+        \item \bad{Classique RBF-SVM} = 0.775 :\\
+              toujours supérieur, sans bruit
+      \end{itemize}
+      \smallskip
+      \begin{alertblock}{Pourquoi ne pas déployer}
+        \small Le bruit QPU actuel est imprévisible :\\
+        certains kernels s'améliorent (+6.5 pts),\\
+        d'autres se dégradent ($-$2.5 pts).\\
+        Comportement non contrôlable en production.
+      \end{alertblock}
+  \end{columns}
+\end{frame}
+
+% =============================================================
+\section{Bilan et recommandations}
+% =============================================================
+
+\begin{frame}{Bilan global de performance}
+  \begin{center}
+    \includegraphics[width=0.82\textwidth]{results/presentation/pres_F4_gap.png}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Ce que ça veut dire pour la banque}
+  \begin{columns}[T]
+    \column{0.50\textwidth}
+      \textbf{Aujourd'hui — Ne pas déployer}\\[6pt]
+      \begin{itemize}
+        \item \bad{$-7$ pts AUC} sur le risque crédit :\\
+              les classiques sont supérieurs et moins coûteux
+        \item Hardware trop bruité :\\
+              variance $\pm 0.20$ inacceptable en production
+        \item Plus de données n'efface pas l'écart :\\
+              limite structurelle, pas statistique
+      \end{itemize}
+
+      \bigskip
+      \textbf{Recommandation immédiate}\\[4pt]
+      Continuer à utiliser \textbf{RBF-SVM} et
+      \textbf{Forêt aléatoire} en production.
+      Ne pas investir dans du hardware QPU
+      pour la classification de crédit.
+
+    \column{0.48\textwidth}
+      \textbf{Horizon 3--5 ans — À surveiller}\\[6pt]
+      \begin{itemize}
+        \item \good{QMKL-Boost} : notre approche QUBO
+              gagne \good{+4 pts} sur German Credit
+              — à suivre quand le hardware sera stable
+        \item \good{Interprétabilité réglementaire} :\\
+              QUBO sélectionne 2 kernels sur 12,
+              modèle plus explicable (Bâle IV, RGPD)
+        \item \good{Vitesse d'inférence} : 2 kernels =
+              6$\times$ moins de calcul à la décision
+      \end{itemize}
+
+      \bigskip
+      \begin{exampleblock}{Position recommandée}
+        \small R\&D exploratoire, budget contenu.
+        Réévaluation complète en 2028--2030
+        quand la correction d'erreur QPU sera mature.
+      \end{exampleblock}
+  \end{columns}
+\end{frame}
+
+% ── Slide de clôture ─────────────────────────────────────
+\begin{frame}[plain]
+  \centering
+  \vspace{1.8cm}
+  {\Huge\bfseries\color{qblue} Merci}\\[0.8em]
+  \large Questions ?\\[1.8em]
+  \small\color{gray}
+  9 notebooks exécutés · 3 datasets financiers · 19 méthodes comparées\\
+  20 runs par expérience · 6 qubits · simulation statevector exacte\\[0.5em]
+  \normalsize\color{qblue}
+  \textbf{Takeaway :} QMKL-Boost $+$4 pts AUC avec 2 kernels sur 12
+  — l'avantage quantique est dans la \emph{sélection}, pas dans le nombre.
+\end{frame}
+
+\end{document}
