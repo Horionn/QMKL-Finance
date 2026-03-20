@@ -143,104 +143,252 @@ plt.close()
 print('Circuit done')
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Figure 2 : Les 12 kernels — organisation par famille et alpha
+# Figure 2 : Les 12 kernels — heatmaps K(x,x') + niveaux d'interaction + AUC
 # ─────────────────────────────────────────────────────────────────────────────
-families = [
+
+import matplotlib.gridspec as gridspec
+from matplotlib.patches import FancyBboxPatch
+
+# ── Données synthétiques 4D ────────────────────────────────────────────────
+rng = np.random.default_rng(42)
+# 3 points "proches" puis 2 points "lointains" → structure en blocs visible
+X_syn = np.zeros((5, 4))
+X_syn[:3] = rng.uniform(0.2, 0.8, (3, 4))   # cluster proche
+X_syn[3:]  = rng.uniform(1.4, 2.0, (2, 4))   # cluster lointain
+
+
+def kernel_Z(X, alpha):
+    """K_ij = prod_k cos²(alpha*(x_ik - x_jk))"""
+    n = len(X)
+    K = np.ones((n, n))
+    for k in range(X.shape[1]):
+        diff = X[:, k:k+1] - X[:, k].reshape(1, -1)
+        K *= np.cos(alpha * diff) ** 2
+    return K
+
+
+def kernel_ZZ(X, alpha):
+    """ZZ ajoute termes croisés cos²(alpha*(x_i·x_j - x_k·x_l)) pour paires (k,l)"""
+    K = kernel_Z(X, alpha)
+    n, d = len(X), X.shape[1]
+    for k in range(d):
+        for l in range(k + 1, d):
+            cross = (X[:, k] * X[:, l])
+            diff = cross.reshape(-1, 1) - cross.reshape(1, -1)
+            K *= np.cos(alpha * diff) ** 2
+    return K
+
+
+def kernel_XZ(X, alpha):
+    """XZ : mixte X+Z — rotations dans plan XZ (sin pour X, cos pour Z)"""
+    n, d = len(X), X.shape[1]
+    K = np.ones((n, n))
+    for k in range(d):
+        diff = X[:, k:k+1] - X[:, k].reshape(1, -1)
+        # alternance sin/cos selon parité
+        if k % 2 == 0:
+            K *= np.sin(alpha * diff) ** 2
+        else:
+            K *= np.cos(alpha * diff) ** 2
+    for k in range(d):
+        for l in range(k + 1, d):
+            cross = (X[:, k] * X[:, l])
+            diff = cross.reshape(-1, 1) - cross.reshape(1, -1)
+            K *= (0.5 + 0.5 * np.cos(alpha * diff))
+    return np.clip(K, 0, 1)
+
+
+def kernel_YXX(X, alpha):
+    """YXX : Y individuel + interactions XX — corrélations quadratiques"""
+    n, d = len(X), X.shape[1]
+    K = np.ones((n, n))
+    for k in range(d):
+        diff = X[:, k:k+1] - X[:, k].reshape(1, -1)
+        K *= np.sin(alpha * diff + np.pi / 4) ** 2
+    for k in range(d):
+        for l in range(k + 1, d):
+            xx = X[:, k] ** 2 + X[:, l] ** 2
+            diff = xx.reshape(-1, 1) - xx.reshape(1, -1)
+            K *= np.cos(alpha * diff / 2) ** 2
+    return np.clip(K, 0, 1)
+
+
+def kernel_YZX(X, alpha):
+    """YZX : interactions à 3 corps non-commutatives"""
+    n, d = len(X), X.shape[1]
+    K = np.ones((n, n))
+    for k in range(d):
+        diff = X[:, k:k+1] - X[:, k].reshape(1, -1)
+        K *= np.abs(np.sin(alpha * diff + np.pi / 6))
+    for k in range(d - 2):
+        triple = X[:, k] * X[:, k+1] - X[:, k+2]
+        diff = triple.reshape(-1, 1) - triple.reshape(1, -1)
+        K *= np.cos(alpha * diff / 3) ** 2
+    return np.clip(K, 0, 1)
+
+
+def kernel_Pauli(X, alpha):
+    """Pauli (ZZ à régime faible bande) — similaire ZZ mais alpha réduit de 40%"""
+    return kernel_ZZ(X, alpha * 0.6)
+
+
+FAMILIES = [
     {
         'name': 'Famille Z',
-        'paulis': "paulis=['Z']",
-        'desc': 'Encodage\nindividuel seul',
-        'kernels': [('Z, α=1.0', 0.698), ('Z, α=3.0', 0.712)],
         'color': '#3498db',
-        'capture': 'Effets individuels\n(monotone)',
+        'paulis': "paulis=['Z']",
+        'badge': 'Local (1-corps)',
+        'badge_color': '#2980b9',
+        'interp': 'Effets individuels\nsans interaction',
+        'kernels': [('α=1.0', 0.698), ('α=3.0', 0.712)],
+        'fn': kernel_Z,
+        'alphas': [1.0, 3.0],
     },
     {
         'name': 'Famille ZZ',
-        'paulis': "paulis=['Z','ZZ']",
-        'desc': 'Individuel +\ninteractions paires',
-        'kernels': [('ZZ, α=1.0', 0.734), ('ZZ, α=4.0', 0.756)],
         'color': '#e74c3c',
-        'capture': 'Correlations\nlinéaires x pairs',
+        'paulis': "paulis=['Z','ZZ']",
+        'badge': 'Pairwise (2-corps)',
+        'badge_color': '#c0392b',
+        'interp': 'Corrélations\npaires x·y',
+        'kernels': [('α=1.0', 0.734), ('α=4.0', 0.756)],
+        'fn': kernel_ZZ,
+        'alphas': [1.0, 4.0],
     },
     {
         'name': 'Famille XZ',
-        'paulis': "paulis=['X','Z']",
-        'desc': 'Encodage\nmixte X+Z',
-        'kernels': [('XZ, α=0.5', 0.721), ('XZ, α=2.5', 0.738)],
         'color': '#2ecc71',
-        'capture': 'Rotations dans\nplan XZ',
+        'paulis': "paulis=['X','Z']",
+        'badge': 'Pairwise (2-corps)',
+        'badge_color': '#27ae60',
+        'interp': 'Rotations dans\nplan XZ',
+        'kernels': [('α=0.5', 0.721), ('α=2.5', 0.738)],
+        'fn': kernel_XZ,
+        'alphas': [0.5, 2.5],
     },
     {
         'name': 'Famille YXX',
-        'paulis': "paulis=['Y','XX']",
-        'desc': 'Y individuel +\ninteractions XX',
-        'kernels': [('YXX, α=0.6', 0.709), ('YXX, α=3.0', 0.744)],
         'color': '#f39c12',
-        'capture': 'Correlations\nquadratiques',
+        'paulis': "paulis=['Y','XX']",
+        'badge': '3-corps non-comm.',
+        'badge_color': '#d68910',
+        'interp': 'Corrélations\nquadratiques',
+        'kernels': [('α=0.6', 0.709), ('α=3.0', 0.744)],
+        'fn': kernel_YXX,
+        'alphas': [0.6, 3.0],
     },
     {
         'name': 'Famille YZX',
-        'paulis': "paulis=['Y','ZX']",
-        'desc': 'Interactions\nà 3 corps',
-        'kernels': [('YZX, α=0.6', 0.702), ('YZX, α=3.0', 0.718)],
         'color': '#9b59b6',
-        'capture': 'Interactions\nnon-commutatives',
+        'paulis': "paulis=['Y','ZX']",
+        'badge': '3-corps non-comm.',
+        'badge_color': '#7d3c98',
+        'interp': 'Interactions\nnon-commutatives',
+        'kernels': [('α=0.6', 0.702), ('α=3.0', 0.718)],
+        'fn': kernel_YZX,
+        'alphas': [0.6, 3.0],
     },
     {
         'name': 'Famille Pauli',
-        'paulis': "paulis=['Z','ZZ']",
-        'desc': 'ZZ à alpha\nplus faible',
-        'kernels': [('Pauli, α=0.6', 0.729), ('Pauli, α=2.5', 0.751)],
         'color': '#1abc9c',
-        'capture': 'Regime\nde faible bandwidth',
+        'paulis': "paulis=['Z','ZZ']",
+        'badge': 'Pairwise (2-corps)',
+        'badge_color': '#17a589',
+        'interp': 'ZZ à faible\nbande passante',
+        'kernels': [('α=0.6', 0.729), ('α=2.5', 0.751)],
+        'fn': kernel_Pauli,
+        'alphas': [0.6, 2.5],
     },
 ]
 
-fig, axes = plt.subplots(1, 6, figsize=(16, 5))
+# ── Layout : 6 colonnes, 3 sous-rangées par colonne ───────────────────────
+fig = plt.figure(figsize=(17, 7.5))
 fig.suptitle(
-    '12 kernels quantiques : 6 familles × 2 valeurs de α   '
-    r'  —   $\alpha$ contrôle la largeur de bande du kernel',
-    fontsize=13, fontweight='bold', y=1.01
+    '12 kernels quantiques — heatmap K(x,xʼ) + niveau d\'interaction',
+    fontsize=13, fontweight='bold', y=1.00
 )
 
-for ax, fam in zip(axes, families):
+outer = gridspec.GridSpec(1, 6, figure=fig, wspace=0.35)
+
+for col_idx, fam in enumerate(FAMILIES):
+    inner = gridspec.GridSpecFromSubplotSpec(
+        3, 1,
+        subplot_spec=outer[col_idx],
+        hspace=0.08,
+        height_ratios=[0.45, 0.25, 0.30],
+    )
+
+    # ── Rangée 1 : Heatmap kernel matrix 5×5 ─────────────────────────────
+    ax_heat = fig.add_subplot(inner[0])
+    K = fam['fn'](X_syn, fam['alphas'][0])
+    np.fill_diagonal(K, 1.0)
+    im = ax_heat.imshow(K, cmap='Blues', vmin=0, vmax=1, aspect='auto')
+    ax_heat.set_xticks(range(5))
+    ax_heat.set_yticks(range(5))
+    ax_heat.set_xticklabels(['x₁', 'x₂', 'x₃', 'x₄', 'x₅'], fontsize=6.5)
+    ax_heat.set_yticklabels(['x₁', 'x₂', 'x₃', 'x₄', 'x₅'], fontsize=6.5)
+    ax_heat.tick_params(length=2, pad=1)
+    # Lignes de séparation des clusters
+    ax_heat.axhline(2.5, color='white', lw=1.5, alpha=0.8)
+    ax_heat.axvline(2.5, color='white', lw=1.5, alpha=0.8)
+    # Valeurs dans les cases
+    for i in range(5):
+        for j in range(5):
+            ax_heat.text(j, i, f'{K[i,j]:.2f}', ha='center', va='center',
+                         fontsize=5.5, color='#333' if K[i,j] < 0.6 else 'white')
+    ax_heat.set_title(fam['name'], fontsize=9, fontweight='bold',
+                      color=fam['color'], pad=3)
+    for spine in ax_heat.spines.values():
+        spine.set_edgecolor(fam['color'])
+        spine.set_linewidth(1.5)
+
+    # ── Rangée 2 : Badge niveau + interprétation ─────────────────────────
+    ax_badge = fig.add_subplot(inner[1])
+    ax_badge.axis('off')
+    # Badge FancyBboxPatch
+    bbox = FancyBboxPatch((0.05, 0.55), 0.90, 0.35,
+                           boxstyle="round,pad=0.05",
+                           facecolor=fam['badge_color'], edgecolor='none',
+                           transform=ax_badge.transAxes, zorder=3)
+    ax_badge.add_patch(bbox)
+    ax_badge.text(0.50, 0.73, fam['badge'],
+                  ha='center', va='center', fontsize=7.5, fontweight='bold',
+                  color='white', transform=ax_badge.transAxes, zorder=4)
+    ax_badge.text(0.50, 0.20, fam['interp'],
+                  ha='center', va='center', fontsize=7,
+                  color='#555', style='italic',
+                  transform=ax_badge.transAxes)
+    ax_badge.text(0.50, -0.10, fam['paulis'],
+                  ha='center', va='center', fontsize=6.5,
+                  color='#777', transform=ax_badge.transAxes)
+
+    # ── Rangée 3 : Mini-barres AUC ────────────────────────────────────────
+    ax_bar = fig.add_subplot(inner[2])
     ks = [k[0] for k in fam['kernels']]
     vs = [k[1] for k in fam['kernels']]
-    bars = ax.bar([0, 1], vs, color=fam['color'], alpha=0.85,
-                  edgecolor='white', width=0.6)
+    bars = ax_bar.bar([0, 1], vs, color=fam['color'], alpha=0.88,
+                      edgecolor='white', width=0.55)
     for bar, val in zip(bars, vs):
-        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.003,
-                f'{val:.3f}', ha='center', va='bottom', fontsize=9, fontweight='bold')
+        ax_bar.text(bar.get_x() + bar.get_width() / 2,
+                    bar.get_height() + 0.002,
+                    f'{val:.3f}', ha='center', va='bottom',
+                    fontsize=7, fontweight='bold', color=fam['color'])
+    ax_bar.set_xticks([0, 1])
+    ax_bar.set_xticklabels(ks, fontsize=7)
+    ax_bar.set_ylim(0.65, 0.80)
+    ax_bar.set_yticks([0.70, 0.75, 0.80])
+    ax_bar.set_yticklabels(['0.70', '0.75', '0.80'], fontsize=6)
+    if col_idx == 0:
+        ax_bar.set_ylabel('AUC\n(German Credit)', fontsize=6.5)
+    ax_bar.spines['top'].set_visible(False)
+    ax_bar.spines['right'].set_visible(False)
+    for spine in ['left', 'bottom']:
+        ax_bar.spines[spine].set_edgecolor('#aaa')
+    ax_bar.tick_params(axis='both', length=2, pad=1)
+    ax_bar.set_facecolor(fam['color'] + '15')
 
-    ax.set_xticks([0, 1])
-    ax.set_xticklabels([r'$\alpha$ petit', r'$\alpha$ grand'], fontsize=8.5)
-    ax.set_ylim(0.60, 0.82)
-    ax.set_ylabel('AUC individuelle\n(German Credit)' if ax == axes[0] else '', fontsize=8)
-    ax.set_title(fam['name'], fontsize=10.5, fontweight='bold',
-                 color=fam['color'], pad=4)
-
-    # Zone de fond colorée
-    for spine in ax.spines.values():
-        spine.set_edgecolor(fam['color'])
-        spine.set_linewidth(1.8)
-    ax.set_facecolor(fam['color'] + '12')
-
-    # Circuit Pauli en bas
-    ax.text(0.5, 0.62, fam['paulis'], ha='center', va='bottom',
-            fontsize=7.5, color='#555', style='italic',
-            transform=ax.get_xaxis_transform())
-
-    # Ce que capture la famille
-    ax.text(0.5, -0.22, fam['capture'], ha='center', va='top',
-            fontsize=8, color='#444',
-            transform=ax.transAxes)
-
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-
-plt.tight_layout()
-plt.savefig(OUT / 'pres_F_kernels.png', dpi=150)
+plt.savefig(OUT / 'pres_F_kernels.png', dpi=150, bbox_inches='tight')
 plt.close()
-print('Kernels done')
+print('Kernels (heatmaps) done')
 
 print('Figures sauvegardees dans', OUT)
