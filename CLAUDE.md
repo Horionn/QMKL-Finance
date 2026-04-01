@@ -1,5 +1,14 @@
 # CLAUDE.md — QMKL-Finance
 
+## Instructions de travail (à respecter impérativement)
+
+- **Planification** : toujours utiliser l'agent Opus (`model: "opus"`) via l'outil Agent/Plan
+- **Code** : toujours utiliser Sonnet (modèle par défaut) pour l'implémentation
+- **Commandes shell** : toujours préfixer avec `rtk` (ex: `rtk git status`, `rtk python script.py`)
+- **Skills** : plus de 150 skills sont disponibles — les identifier et les utiliser proactivement sans attendre que l'utilisateur le demande. Chercher systématiquement si un skill est applicable avant d'écrire du code custom.
+
+---
+
 ## Description du projet
 
 **Quantum Multiple Kernel Learning (QMKL) pour la classification financière**
