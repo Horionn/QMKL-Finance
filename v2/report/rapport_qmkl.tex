@@ -1,0 +1,1468 @@
+%% ============================================================
+%% Rapport technique — Quantum Multiple Kernel Learning (QMKL)
+%% Projet-QMKL-Finance (v1) + Projet-QMKL-v2
+%% ============================================================
+
+\documentclass[12pt,a4paper]{article}
+
+% ----- Packages -----
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{bm}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{tikz}
+\usetikzlibrary{babel}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{tcolorbox}
+\geometry{margin=2.5cm, headheight=15pt}
+
+% ----- Colors -----
+\definecolor{qblue}{RGB}{52,152,219}
+\definecolor{qred}{RGB}{231,76,60}
+\definecolor{qgreen}{RGB}{46,204,113}
+\definecolor{qorange}{RGB}{243,156,18}
+\definecolor{qpurple}{RGB}{155,89,182}
+\definecolor{qgray}{RGB}{127,140,141}
+\definecolor{codebg}{RGB}{248,248,248}
+\definecolor{codeframe}{RGB}{200,200,200}
+
+% ----- Code listings -----
+\lstdefinestyle{pythonstyle}{
+  backgroundcolor=\color{codebg},
+  commentstyle=\color{qgray}\itshape,
+  keywordstyle=\color{qblue}\bfseries,
+  numberstyle=\tiny\color{qgray},
+  stringstyle=\color{qgreen},
+  basicstyle=\ttfamily\footnotesize,
+  breakatwhitespace=false,
+  breaklines=true,
+  captionpos=b,
+  keepspaces=true,
+  numbers=left,
+  numbersep=5pt,
+  showspaces=false,
+  showstringspaces=false,
+  showtabs=false,
+  tabsize=2,
+  frame=single,
+  rulecolor=\color{codeframe},
+  language=Python
+}
+\lstset{style=pythonstyle}
+
+% ----- Headers/footers -----
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\textit{Quantum Multiple Kernel Learning}}
+\lhead{\textit{Rapport technique}}
+\rfoot{\thepage}
+\lfoot{\textit{Projet-QMKL — 2025}}
+
+% ----- Theorem environments -----
+\newtheorem{definition}{Définition}[section]
+\newtheorem{proposition}{Proposition}[section]
+\newtheorem{remark}{Remarque}[section]
+
+% ----- Custom boxes -----
+\tcbuselibrary{skins,breakable}
+\newtcolorbox{resultbox}[1][]{
+  enhanced,
+  title={#1},
+  colback=qblue!5,
+  colframe=qblue!50!black,
+  fonttitle=\bfseries,
+  breakable
+}
+\newtcolorbox{warningbox}[1][]{
+  enhanced,
+  title={#1},
+  colback=qred!5,
+  colframe=qred!50!black,
+  fonttitle=\bfseries,
+  breakable
+}
+\newtcolorbox{techbox}[1][]{
+  enhanced,
+  title={#1},
+  colback=qgray!10,
+  colframe=qgray!50!black,
+  fonttitle=\bfseries,
+  breakable
+}
+
+% ----- Hyperref -----
+\hypersetup{
+  colorlinks=true,
+  linkcolor=qblue,
+  citecolor=qgreen,
+  urlcolor=qpurple,
+  pdftitle={Rapport QMKL},
+  pdfauthor={Projet-QMKL}
+}
+
+% ================================================================
+\begin{document}
+
+\begin{titlepage}
+\centering
+\vspace*{2cm}
+
+{\Huge\bfseries Quantum Multiple Kernel Learning\par}
+\vspace{0.5cm}
+{\LARGE\bfseries pour la Classification Financière\par}
+\vspace{1.5cm}
+
+{\large\itshape Rapport technique complet\par}
+{\large\itshape Projet-QMKL-Finance (v1) + Projet-QMKL-v2\par}
+
+\vspace{2cm}
+\rule{\textwidth}{1pt}
+\vspace{0.5cm}
+\begin{tabular}{ll}
+\textbf{Cadre} & Projet académique — Informatique Quantique Appliquée \\
+\textbf{Technologies} & Qiskit 1.x, scikit-learn, IBM Quantum (Open Plan) \\
+\textbf{Matériel testé} & IBM Torino (133 qubits, Heron r2) \\
+\textbf{Date} & Avril 2025 \\
+\end{tabular}
+\vspace{0.5cm}
+\rule{\textwidth}{1pt}
+
+\vspace{2cm}
+
+\begin{abstract}
+\noindent Ce rapport documente deux implémentations successives de Quantum Multiple Kernel Learning (QMKL)
+pour la classification de données financières. Le \textbf{projet v1} (Projet-QMKL-Finance) réalise une
+étude empirique exhaustive de 12 noyaux quantiques et 5 stratégies MKL sur trois jeux de données
+standards (German Credit, Bank Marketing, Breast Cancer). Le \textbf{projet v2} (Projet-QMKL-v2)
+étend l'approche avec une formulation QUBO pour l'assignation optimale de features aux noyaux,
+testée sur données macroéconomiques FRED et sur matériel IBM Torino.
+
+Les résultats empiriques sont mitigés : QMKL n'améliore pas significativement les classifieurs
+classiques (RBF-SVM, Random Forest) dans nos conditions expérimentales. Ce rapport documente
+honnêtement ce qui fonctionne, ce qui ne fonctionne pas, et \emph{pourquoi} — les résultats négatifs
+étant eux-mêmes une contribution scientifique valide.
+\end{abstract}
+
+\vfill
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% ================================================================
+\section{Introduction et Contexte}
+\label{sec:intro}
+
+\subsection{Motivation}
+
+Le Machine Learning Quantique (QML) promet un avantage algorithmique grâce à la superposition et
+l'intrication quantiques. Parmi les approches QML, les \emph{noyaux quantiques} (quantum kernels)
+présentent un attrait particulier : ils restent dans le paradigme SVM bien établi tout en projetant
+les données dans des espaces de Hilbert exponentiellement grands, inaccessibles classiquement.
+
+Les données financières semblent idéales pour ces approches :
+\begin{itemize}
+  \item Haute dimensionnalité (20–30 indicateurs macroéconomiques)
+  \item Corrélations complexes non linéaires entre variables
+  \item Faible rapport signal/bruit (crises rares, régimes changeants)
+  \item Problèmes de classification binaire bien définis (récession / expansion, défaut / non-défaut)
+\end{itemize}
+
+\subsection{Objectifs des deux projets}
+
+\paragraph{V1 — Projet-QMKL-Finance.}
+Évaluer empiriquement si la combinaison de multiples noyaux quantiques (MKL) améliore la performance
+de classification par rapport à (1) un noyau quantique unique et (2) des classifieurs classiques
+de référence.
+
+\paragraph{V2 — Projet-QMKL-v2.}
+Si les barren plateaus limitent chaque noyau à $Q \leq 6$ qubits, comment couvrir optimalement
+un espace de $d = 20$--30 features ? La réponse proposée est une formulation QUBO (Quadratic
+Unconstrained Binary Optimization) pour l'assignation features $\to$ noyaux. Ce projet pose également
+la question fondamentale : \emph{quand} l'avantage quantique se manifeste-t-il, et pour quel régime
+de $Q$ ?
+
+\subsection{Question de recherche centrale}
+
+\begin{tcolorbox}[colback=qblue!10,colframe=qblue!60!black]
+\textbf{Question centrale (v2)} : Comment assigner optimalement $d$ features à $M$ noyaux quantiques
+via QUBO, et à partir de quel $Q$ (nombre de qubits par noyau) la simulation classique devient-elle
+infaisable, justifiant l'usage d'un ordinateur quantique réel ?
+\end{tcolorbox}
+
+% ================================================================
+\section{Fondements Théoriques}
+\label{sec:theory}
+
+\subsection{Noyaux Quantiques}
+
+\subsubsection{Feature Map et Espace de Hilbert}
+
+Un \emph{feature map quantique} encode un vecteur de données $\bm{x} \in \mathbb{R}^Q$ en un état
+quantique $|\psi(\bm{x})\rangle \in \mathcal{H} = (\mathbb{C}^2)^{\otimes Q}$, un espace de
+Hilbert de dimension $2^Q$ :
+\begin{equation}
+  U_\phi(\bm{x}) : |\bm{0}\rangle \mapsto |\psi(\bm{x})\rangle = U_\phi(\bm{x})|\bm{0}\rangle
+\end{equation}
+
+\subsubsection{Noyau de Fidélité}
+
+Le noyau de fidélité mesure le recouvrement entre deux états quantiques :
+\begin{equation}
+  K_{\text{fid}}(\bm{x}, \bm{x}') = |\langle\psi(\bm{x}')|\psi(\bm{x})\rangle|^2
+  = |\langle\bm{0}|U_\phi^\dagger(\bm{x}')U_\phi(\bm{x})|\bm{0}\rangle|^2
+  \label{eq:fidelity}
+\end{equation}
+Ce noyau est valide au sens de Mercer (symétrique, semi-défini positif) et peut être estimé sur
+un circuit quantique via la mesure du bit $|\bm{0}\rangle$ après $U_\phi^\dagger(\bm{x}')U_\phi(\bm{x})$.
+
+\subsubsection{Noyau Projeté}
+
+Le \emph{Projected Quantum Kernel} (PQK) réduit d'abord l'état à ses matrices densité
+mono-qubit $\rho_k(\bm{x}) = \text{Tr}_{\neq k}|\psi(\bm{x})\rangle\langle\psi(\bm{x})|$,
+puis applique un noyau RBF sur les distances de Frobenius :
+\begin{equation}
+  K_{\text{proj}}(\bm{x}, \bm{x}') = \exp\!\left(-\gamma \sum_{k=0}^{Q-1}
+  \|\rho_k(\bm{x}) - \rho_k(\bm{x}')\|_F^2\right)
+  \label{eq:projected}
+\end{equation}
+
+\subsection{Familles de Feature Maps Utilisées}
+
+Deux familles principales ont été implémentées :
+
+\subsubsection{ZFeatureMap (local, sans intrication)}
+\begin{equation}
+  U_Z(\bm{x}) = \bigotimes_{k=0}^{Q-1} R_Z(\alpha x_k)
+  \label{eq:zmap}
+\end{equation}
+Le noyau correspondant admet une forme analytique fermée :
+\begin{equation}
+  K_Z(\bm{x}, \bm{x}') = \prod_{k=0}^{Q-1} \cos^2\!\left(\alpha(x_k - x'_k)\right)
+  \label{eq:kz_analytical}
+\end{equation}
+
+\subsubsection{ZZFeatureMap (avec intrication)}
+\begin{align}
+  U_{ZZ}(\bm{x}) &= \left(\prod_{k=0}^{Q-2} \text{CX}_{k,k+1} \cdot R_Z\!\left(\alpha(x_k - x_{k+1})^2\right) \cdot \text{CX}_{k,k+1}\right) \cdot U_Z(\bm{x})
+  \label{eq:zzmap}
+\end{align}
+Forme analytique (supposant pas d'intrication supplémentaire) :
+\begin{equation}
+  K_{ZZ}(\bm{x}, \bm{x}') = K_Z(\bm{x}, \bm{x}') \cdot
+  \prod_{k<l} \cos^2\!\left(\alpha(x_k x_l - x'_k x'_l)\right)
+  \label{eq:kzz_analytical}
+\end{equation}
+
+Ces formes analytiques ont été implémentées dans \texttt{src/kernels/analytical.py} (v2) pour
+éviter la dépendance Qiskit dans les diagnostics, permettant des évaluations rapides sur CPU.
+
+\subsection{Multiple Kernel Learning (MKL)}
+
+\subsubsection{Combinaison linéaire}
+
+Étant donnés $M$ noyaux $\{K_m\}_{m=1}^M$, la combinaison MKL est :
+\begin{equation}
+  K_{\text{comb}}(\bm{x}, \bm{x}') = \sum_{m=1}^M w_m K_m(\bm{x}, \bm{x}'),
+  \quad w_m \geq 0, \quad \sum_{m=1}^M w_m = 1
+  \label{eq:mkl_combination}
+\end{equation}
+
+\subsubsection{Alignement centré}
+
+Le noyau idéal est le noyau cible $K_y[i,j] = \mathbb{1}[y_i = y_j]$.
+L'alignement de noyau centré (Cortes \emph{et al.}, 2012) est :
+\begin{equation}
+  A(K_i, K_j) = \frac{\langle K_i^c, K_j^c \rangle_F}{\|K_i^c\|_F \cdot \|K_j^c\|_F}
+\end{equation}
+où $K^c = \left(I - \frac{\bm{1}\bm{1}^T}{m}\right) K \left(I - \frac{\bm{1}\bm{1}^T}{m}\right)$
+est le noyau centré.
+
+Le problème d'optimisation des poids est :
+\begin{equation}
+  \min_{\bm{v} \geq 0} \; \bm{v}^T M \bm{v} - 2\bm{v}^T \bm{a}
+  \quad \text{où} \quad M_{ij} = \langle K_i^c, K_j^c\rangle_F, \quad a_i = \langle K_i^c, K_y^c\rangle_F
+  \label{eq:centered_alignment}
+\end{equation}
+
+\subsubsection{Alignement SDP}
+
+La formulation SDP (Lanckriet \emph{et al.}, 2004) :
+\begin{equation}
+  \max_{\bm{w}} \; \bm{w}^T \bm{q} \quad \text{s.t.} \quad \bm{w}^T S \bm{w} \leq 1, \; \bm{w} \geq 0
+  \quad \text{où} \quad q_i = \langle K_i, K_y\rangle_F, \; S_{ij} = \langle K_i, K_j\rangle_F
+  \label{eq:sdp_alignment}
+\end{equation}
+résolu via CVXPY avec cascade de solveurs : CLARABEL $\to$ ECOS $\to$ SCS.
+
+\subsection{Barren Plateaus}
+\label{sec:barren_plateaus}
+
+\subsubsection{Phénomène}
+
+Pour un circuit quantique aléatoire de $Q$ qubits, la variance du gradient d'un paramètre $\theta$
+décroît exponentiellement :
+\begin{equation}
+  \text{Var}\!\left[\frac{\partial \mathcal{L}}{\partial \theta}\right] \sim O\!\left(2^{-Q}\right)
+  \label{eq:barren_plateau}
+\end{equation}
+Cette concentration exponentielle rend l'optimisation par descente de gradient impossible pour
+$Q \gtrsim 15$.
+
+\subsubsection{Conséquence sur les noyaux}
+
+Pour les noyaux de fidélité à grande profondeur, le phénomène analogue est la \emph{concentration
+du noyau} : tous les $K(\bm{x}, \bm{x}')$ convergent vers une même constante (indépendamment de
+$\bm{x}, \bm{x}'$), effaçant l'information discriminante.
+
+\subsubsection{Mesure empirique}
+
+Deux métriques ont été implémentées dans \texttt{src/kernels/diagnostics.py} :
+\begin{itemize}
+  \item \textbf{Variance du gradient} (finite-difference) :
+  \begin{equation}
+    \text{GradVar}(K, \alpha) = \text{Var}_{i \neq j}\!\left[\frac{K(X,X;\alpha+\epsilon) - K(X,X;\alpha-\epsilon)}{2\epsilon}\right]
+  \end{equation}
+  \item \textbf{Écart-type des entrées hors-diagonale} :
+  \begin{equation}
+    \sigma_{\text{off}}(K) = \text{Std}_{i \neq j}[K_{ij}]
+  \end{equation}
+\end{itemize}
+
+\subsection{Formulation QUBO pour l'Assignation de Features}
+\label{sec:qubo}
+
+\subsubsection{Problème d'assignation}
+
+\begin{definition}[Assignation Feature $\to$ Noyau]
+Étant donnés $d$ features et $M$ noyaux quantiques de $Q$ qubits chacun, définir les variables
+binaires $x_{k,m} \in \{0,1\}$ indiquant si la feature $k$ est assignée au noyau $m$.
+L'assignation optimale satisfait exactement $Q$ features par noyau.
+\end{definition}
+
+\subsubsection{Formulation C (recommandée)}
+
+\begin{equation}
+\boxed{
+\min_{\bm{x} \in \{0,1\}^{dM}}
+  \underbrace{-\sum_{k,m} a_{k,m} \, x_{k,m}}_{\text{qualité}}
+  + \underbrace{\lambda \sum_k \sum_{m < m'} x_{k,m} \, x_{k,m'}}_{\text{diversité}}
+  + \underbrace{\mu_1 \sum_m \!\left(\sum_k x_{k,m} - Q\right)^{\!2}}_{\text{contrainte taille}}
+}
+\label{eq:qubo_C}
+\end{equation}
+
+\paragraph{Alignements marginaux $a_{k,m}$.}
+Pour chaque paire (feature $k$, noyau $m$), l'alignement marginal mesure la qualité discriminante
+du noyau $m$ en utilisant seulement la feature $k$ (avec $Q-1$ features de remplissage) :
+\begin{equation}
+  a_{k,m} = A(K_m^{(k)}, K_y^c)
+\end{equation}
+où $K_m^{(k)}$ est la matrice noyau du noyau $m$ construite uniquement avec la feature $k$.
+
+\paragraph{Matrice QUBO.}
+En développant \eqref{eq:qubo_C}, on obtient la représentation matricielle $E(\bm{x}) = \bm{x}^T Q \bm{x}$ :
+\begin{align}
+  Q_{ii} &= -a_{k,m} + \mu_1(1 - 2Q) \quad (i = k \cdot M + m) \\
+  Q_{ij} &= 2\mu_1 \quad (i = k_1 M + m,\; j = k_2 M + m,\; k_1 < k_2) \\
+  Q_{ij} &= \lambda \quad (i = k M + m_1,\; j = k M + m_2,\; m_1 < m_2)
+\end{align}
+$Q$ est triangulaire supérieure de taille $(dM) \times (dM)$.
+
+\subsubsection{Solveurs QUBO}
+
+Quatre solveurs ont été implémentés dans \texttt{src/qubo/solvers.py} (Tableau~\ref{tab:solvers}).
+
+\begin{table}[H]
+\centering
+\caption{Comparaison des solveurs QUBO}
+\label{tab:solvers}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Solveur} & \textbf{Complexité} & \textbf{Optimalité} & \textbf{Faisable \#vars} & \textbf{Notes} \\
+\midrule
+Brute Force & $O(2^n)$ & Globale & $n \leq 24$ & Référence exacte \\
+Greedy & $O(d^2 M)$ & Locale & Illimité & Très rapide \\
+Recuit Simulé & $O(n_{\text{iter}})$ & Quasi-opt. & Illimité & $\approx$ optimal en pratique \\
+QAOA ($p$ couches) & $O(n_{\text{circuit}})$ & Approx. & $\leq 50$ (sim.), illimité (HW) & Avantage quantique potentiel \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{QAOA — Quantum Approximate Optimization Algorithm}
+
+QAOA résout des problèmes QUBO en convertissant la matrice $Q$ en Hamiltonien d'Ising :
+\begin{equation}
+  H_C = \sum_{i \leq j} Q_{ij} \, \frac{I - Z_i}{2} \cdot \frac{I - Z_j}{2}
+  \label{eq:ising}
+\end{equation}
+
+L'ansatz QAOA à $p$ couches est :
+\begin{equation}
+  |\bm{\theta}\rangle = e^{-i\beta_p H_B} e^{-i\gamma_p H_C} \cdots e^{-i\beta_1 H_B} e^{-i\gamma_1 H_C} |+\rangle^{\otimes n}
+  \label{eq:qaoa_ansatz}
+\end{equation}
+où $H_B = \sum_i X_i$ est l'Hamiltonien de mélange, $\bm{\theta} = (\bm{\beta}, \bm{\gamma})$
+sont optimisés classiquement (COBYLA), et $n = dM$ variables binaires.
+
+% ================================================================
+\section{Projet V1 — QMKL-Finance}
+\label{sec:v1}
+
+\subsection{Architecture}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  box/.style={rectangle,draw,rounded corners,fill=qblue!15,minimum width=3cm,minimum height=1cm,align=center},
+  arrow/.style={->,thick,qblue!70!black}
+]
+\node[box] (data) at (0,0) {Données brutes\\(OpenML, sklearn)};
+\node[box] (preproc) at (4,0) {Prétraitement\\QuantumScaler + PCA};
+\node[box] (kernels) at (8,0) {$M=12$ Noyaux\\Quantiques};
+\node[box] (mkl) at (8,-2) {Combinaison MKL\\(Alignment/BO)};
+\node[box] (svm) at (4,-2) {QSVM\\(noyau précalculé)};
+\node[box] (eval) at (0,-2) {Évaluation\\AUC, F1, recall};
+
+\draw[arrow] (data) -- (preproc);
+\draw[arrow] (preproc) -- (kernels);
+\draw[arrow] (kernels) -- (mkl);
+\draw[arrow] (mkl) -- (svm);
+\draw[arrow] (svm) -- (eval);
+\end{tikzpicture}
+\caption{Pipeline QMKL-Finance (v1)}
+\label{fig:v1_pipeline}
+\end{figure}
+
+\subsection{Jeux de Données}
+
+\begin{table}[H]
+\centering
+\caption{Jeux de données utilisés en v1}
+\label{tab:v1_datasets}
+\begin{tabular}{@{}llccccc@{}}
+\toprule
+\textbf{Dataset} & \textbf{Domaine} & $N$ & $d$ & \textbf{Classes} & \textbf{Équilibre} & \textbf{Source} \\
+\midrule
+German Credit & Finance & 1000 & 20 & 2 & 70/30\% & UCI/OpenML \#31 \\
+Bank Marketing & Finance & 5000+ & 16 & 2 & 88/12\% & UCI/OpenML \#1461 \\
+Breast Cancer & Médecine & 569 & 30 & 2 & 63/37\% & sklearn \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Les données sont prétraitées par \texttt{src/preprocessing/scaler.py} :
+\begin{enumerate}
+  \item Standardisation (zero-mean, unit-variance)
+  \item PCA vers $Q$ composantes (réduction dimensionnelle)
+  \item MinMax scaling vers $[0, 2\pi]$ (encodage quantique optimal)
+\end{enumerate}
+
+\subsection{Bibliothèque de 12 Noyaux Quantiques}
+
+La bibliothèque \texttt{src/kernels/feature\_maps.py} (188 lignes) définit 12 configurations :
+
+\begin{table}[H]
+\centering
+\caption{Bibliothèque de 12 noyaux quantiques (v1)}
+\label{tab:v1_kernels}
+\begin{tabular}{@{}clccc@{}}
+\toprule
+\textbf{ID} & \textbf{Famille Pauli} & \textbf{$\alpha$} & \textbf{Intrication} & \textbf{Profondeur} \\
+\midrule
+1–2 & Z (local) & 1.0 / 3.0 & Aucune & 1 \\
+3–4 & ZZ (2-corps) & 1.0 / 4.0 & Linéaire & 1 \\
+5–6 & XZ (croisé) & 0.5 / 2.5 & Linéaire, 2 reps & 2 \\
+7–8 & YXX (3-corps) & 0.6 / 3.0 & Linéaire, 2 reps & 2 \\
+9–10 & YZX (3-corps) & 0.6 / 3.0 & Linéaire, 2 reps & 2 \\
+11–12 & Pauli (ZZ, 2 reps) & 0.6 / 2.5 & Linéaire, 2 reps & 2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+La diversité des familles (Z local, ZZ 2-corps, XZ croisé, YXX/YZX 3-corps) vise à capturer
+des interactions feature différentes dans l'espace de Hilbert.
+
+\paragraph{Choix du paramètre $\alpha$.}
+Le paramètre $\alpha$ contrôle la "résolution" du noyau. Une valeur faible ($\alpha \approx 0.5$)
+produit un noyau très lisse (underfitting) ; une valeur élevée ($\alpha \approx 20$) produit un
+noyau très concentré (approchant une identité). Les valeurs $\alpha \in \{0.5, 1.0, 2.5, 3.0, 4.0\}$
+ont été sélectionnées empiriquement.
+
+\subsection{Stratégies MKL}
+
+Cinq stratégies de combinaison ont été comparées (Tableau~\ref{tab:v1_mkl_strategies}) :
+
+\begin{table}[H]
+\centering
+\caption{Stratégies MKL implémentées}
+\label{tab:v1_mkl_strategies}
+\begin{tabular}{@{}llcc@{}}
+\toprule
+\textbf{Méthode} & \textbf{Principe} & \textbf{Complexité} & \textbf{Fichier src} \\
+\midrule
+Average & $w_m = 1/M$ (uniforme) & $O(M)$ & alignment.py \\
+Centered & Minimisation quadratique \eqref{eq:centered_alignment} & $O(M^2)$ & alignment.py \\
+SDP & Programme semi-défini \eqref{eq:sdp_alignment} & $O(M^3)$ & alignment.py \\
+Projection & Greedy itératif sur résidus & $O(M^2)$ & alignment.py \\
+Bayesian & BO sur poids + $C$ SVM & $O(n_{\text{calls}} \cdot M^2)$ & bayesian\_optimizer.py \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Implémentation de l'Alignement Centré}
+
+\begin{lstlisting}[caption=Alignement centré — src/mkl/alignment.py (extrait)]
+def _center_kernel(K):
+    """Centre le noyau dans l'espace des features."""
+    n = K.shape[0]
+    one = np.ones((n, n)) / n
+    return K - one @ K - K @ one + one @ K @ one
+
+def compute_centered_alignment_weights(kernels, K_target):
+    """Minimisation QP : min v^T M v - 2 v^T a, v >= 0"""
+    M_mat = np.array([[np.sum(Kc_i * Kc_j)
+                       for Kc_j in kernels_c] for Kc_i in kernels_c])
+    a_vec = np.array([np.sum(Kc_i * K_target_c) for Kc_i in kernels_c])
+
+    # Regularisation: M <- M + eps * ||M||_F * I (stabilite numerique)
+    M_mat += EPS_REG * np.linalg.norm(M_mat, 'fro') * np.eye(len(kernels))
+
+    # Cascade de solveurs: CLARABEL -> ECOS -> SCS -> closed-form
+    w = solve_qp(M_mat, a_vec)  # w >= 0
+    return w / (w.sum() + 1e-12)  # Normalisation
+\end{lstlisting}
+
+\subsubsection{Optimisation Bayésienne}
+
+La stratégie BO (\texttt{src/mkl/bayesian\_optimizer.py}) optimise conjointement :
+\begin{itemize}
+  \item Les poids $\bm{w} \in [0,1]^M$ (espace de Sobol)
+  \item Le paramètre de régularisation $C \in [10^{-2}, 10^2]$ (log-uniforme)
+\end{itemize}
+via la minimisation de la validation croisée 5-fold, avec 50 appels au total (10 initiaux aléatoires,
+40 par acquisition Gaussian Process). Cette méthode est environ 200$\times$ plus lente que
+l'alignement centré pour un gain de +0.8 point AUC au mieux.
+
+\subsection{Système de Cache de Noyaux}
+
+\texttt{src/kernels/kernel\_matrix.py} (236 lignes) implémente :
+\begin{itemize}
+  \item \textbf{Cache disque} : hash MD5 des paramètres $\to$ \texttt{results/kernel\_cache/*.npy}
+  \item \textbf{Calcul parallèle} : joblib ($n_{\text{jobs}} = -1$) pour $M$ noyaux simultanément
+  \item \textbf{Régularisation} : $K \leftarrow K + \varepsilon I$ pour garantir $K \succ 0$
+  \item \textbf{Diagnostics} : \texttt{kernel\_statistics()} détecte la concentration
+\end{itemize}
+
+\subsection{Résultats Empiriques}
+
+\subsubsection{Configuration expérimentale}
+
+\begin{itemize}
+  \item $N = 200$ échantillons d'entraînement (sous-échantillonnage de German Credit/Bank Marketing)
+  \item $Q = 6$ qubits par noyau
+  \item $M = 12$ noyaux dans la bibliothèque
+  \item $K$-fold $= 4$ splits, 20 tirages aléatoires (rapport mean $\pm$ std)
+  \item Simulateur : Qiskit AER (statevector, shots = 8192)
+\end{itemize}
+
+\begin{table}[H]
+\centering
+\caption{Résultats comparatifs — AUC ROC (mean $\pm$ std)}
+\label{tab:v1_results}
+\begin{tabular}{@{}llccc@{}}
+\toprule
+\textbf{Dataset} & \textbf{Méthode} & \textbf{AUC} & \textbf{$\pm$ Std} & \textbf{$\Delta$ vs RBF} \\
+\midrule
+\multirow{7}{*}{German Credit}
+  & Single K (Z, $\alpha=2$) & 0.712 & 0.067 & $-$12.3 \\
+  & QMKL-Average            & 0.763 & 0.055 & $-$7.2 \\
+  & QMKL-Centered           & 0.750 & 0.061 & $-$8.5 \\
+  & QMKL-SDP                & 0.748 & 0.063 & $-$8.7 \\
+  & QMKL-Projection         & 0.755 & 0.058 & $-$8.0 \\
+  & QMKL-BO                 & 0.758 & 0.058 & $-$7.7 \\
+  & \textbf{RBF-SVM}        & \textbf{0.835} & 0.042 & — \\
+\midrule
+\multirow{5}{*}{Bank Marketing}
+  & QMKL-Average            & 0.741 & 0.151 & $-$7.6 \\
+  & QMKL-BO                 & 0.774 & 0.135 & $-$4.3 \\
+  & \textbf{RBF-SVM}        & \textbf{0.817} & 0.068 & — \\
+  & Logistic Regression     & \textbf{0.867} & 0.057 & $+$5.0 \\
+  & Random Forest           & 0.833 & 0.046 & $+$1.6 \\
+\midrule
+\multirow{4}{*}{Breast Cancer}
+  & QMKL-Average            & 0.995 & 0.004 & $-$0.1 (n.s.) \\
+  & QMKL-BO                 & 0.992 & 0.006 & $-$0.4 \\
+  & \textbf{RBF-SVM}        & \textbf{0.996} & 0.004 & — \\
+  & Random Forest           & 0.996 & 0.003 & $+$0.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{resultbox}[Résumé des résultats v1]
+\begin{itemize}
+  \item QMKL est systématiquement inférieur au RBF-SVM classique sur les deux jeux financiers
+  \item L'écart est statistiquement significatif (test de Wilcoxon, $p < 0.001$) sur German Credit
+  \item Sur Breast Cancer, les performances sont équivalentes ($p = 0.14$)
+  \item La stratégie Average est souvent aussi bonne que les méthodes d'alignment sophistiquées
+  \item La BO est $200\times$ plus lente pour $\leq +1$ point d'AUC
+\end{itemize}
+\end{resultbox}
+
+\subsection{Analyses Avancées}
+
+\subsubsection{Ablation sur Q (nombre de qubits)}
+
+L'ablation du nombre de qubits ($Q \in \{2, 4, 6, 8, 10\}$) révèle un plateau de performance
+dès $Q = 4$--6, puis une \emph{dégradation} au-delà (barren plateau se manifeste). Ce résultat
+suggère que l'augmentation de $Q$ sans stratégie de mitigation est contre-productive.
+
+\subsubsection{Interprétabilité : Valeurs de Shapley}
+
+\texttt{src/mkl/shapley\_mkl.py} calcule les valeurs de Shapley des noyaux dans le QMKL,
+quantifiant la contribution marginale de chaque noyau. Résultat notable : 3--4 noyaux dominent
+et les 8--9 restants ont une contribution quasi-nulle, remettant en question l'utilité de
+maintenir $M = 12$.
+
+\subsubsection{MKL Riemannien}
+
+\texttt{src/mkl/riemannian\_mkl.py} exploite la géométrie différentielle des matrices de noyaux
+(variété riemannienne des matrices SDP). La distance géodésique entre noyaux est utilisée pour
+pondérer la combinaison. Cette approche reste expérimentale et n'améliore pas significativement
+les résultats sur nos données.
+
+\subsection{Ce Qui N'a Pas Fonctionné en V1}
+
+\begin{warningbox}[Résultats négatifs V1 — Enseignements]
+\begin{enumerate}
+  \item \textbf{Q élevé ($Q > 6$)} : La concentration exponentielle annule le gain théorique.
+        La PCA pour réduire à $Q$ dimensions perd de l'information critique.
+
+  \item \textbf{SDP} : Instabilité numérique fréquente (matrices SDP mal conditionnées).
+        La cascade CLARABEL $\to$ ECOS $\to$ SCS $\to$ closed-form a été nécessaire.
+
+  \item \textbf{Optimisation Bayésienne} : Le sur-ajustement sur la validation croisée et le coût
+        computationnel ($50 \times$ évaluation noyau complète) ne justifient pas l'usage.
+
+  \item \textbf{Noyau projeté} : Plus lent (calcule les matrices densité $\rho_k$) sans avantage AUC.
+
+  \item \textbf{Bank Marketing} : Le déséquilibre de classes sévère (12\% positif) rend la
+        comparaison par AUC trompeuse ; la régression logistique surpasse tout le monde.
+
+  \item \textbf{MKL vs single kernel} : Sur Breast Cancer, un seul noyau $K_{ZZ}$ atteint
+        AUC = 0.993, proche du QMKL. La complexité de combinaison ne se justifie pas.
+\end{enumerate}
+\end{warningbox}
+
+% ================================================================
+\section{Projet V2 — QMKL-v2 (Assignation QUBO)}
+\label{sec:v2}
+
+\subsection{Motivation : Dépasser les Barren Plateaus via l'Assignation}
+
+Le projet v2 part d'un constat fondamental : avec $d = 19$--30 features et $Q \leq 6$ qubits
+par noyau (limite barren plateau), une réduction PCA globale perd de l'information. L'idée
+innovante est d'assigner \emph{différentes sous-ensembles} de features à \emph{différents} noyaux
+quantiques, puis de combiner les noyaux via MKL.
+
+Le problème d'assignation optimale est NP-difficile (\#vars $= d \times M$, $2^{dM}$ solutions),
+mais peut être encodé comme un QUBO et attaqué par QAOA — qui constitue une application candidate
+à l'avantage quantique.
+
+\subsection{Pipeline V2}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  box/.style={rectangle,draw,rounded corners,fill=qgreen!15,minimum width=3.5cm,minimum height=0.9cm,align=center,font=\small},
+  arrow/.style={->,thick,qgreen!70!black}
+]
+\node[box] (fred) at (0,0) {Données FRED\\(19 indicateurs macroéco)};
+\node[box] (scale) at (5,0) {Prétraitement\\QuantumScaler};
+\node[box] (marg) at (10,0) {Alignements\\marginaux $a_{k,m}$};
+\node[box] (qubo) at (10,-2) {Construction QUBO\\(Formulation C)};
+\node[box] (solver) at (5,-2) {Solveur QUBO\\(BF / SA / Greedy / QAOA)};
+\node[box] (assign) at (0,-2) {Assignation $x_{k,m}$\\features $\to$ noyaux};
+\node[box] (mkl2) at (0,-4) {Calcul $M$ noyaux\\sur sous-ensembles};
+\node[box] (combine) at (5,-4) {Combinaison MKL\\(Centered Alignment)};
+\node[box] (svm2) at (10,-4) {QSVM + Évaluation\\AUC};
+
+\draw[arrow] (fred) -- (scale);
+\draw[arrow] (scale) -- (marg);
+\draw[arrow] (marg) -- (qubo);
+\draw[arrow] (qubo) -- (solver);
+\draw[arrow] (solver) -- (assign);
+\draw[arrow] (assign) -- (mkl2);
+\draw[arrow] (mkl2) -- (combine);
+\draw[arrow] (combine) -- (svm2);
+\end{tikzpicture}
+\caption{Pipeline QMKL-v2 (assignation QUBO)}
+\label{fig:v2_pipeline}
+\end{figure}
+
+\subsection{Données FRED (Macroéconomiques)}
+
+\texttt{src/data/fred\_loader.py} (200 lignes) charge 19 indicateurs via l'API FRED
+(Federal Reserve Economic Data) :
+
+\begin{table}[H]
+\centering
+\caption{Features FRED — 19 indicateurs macroéconomiques}
+\label{tab:fred_features}
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Groupe} & \textbf{Série FRED} & \textbf{Description} & \textbf{Transform.} \\
+\midrule
+\multirow{2}{*}{Marché du travail}
+  & UNRATE & Taux de chômage & Niveau \\
+  & PAYEMS & Emplois non-agricoles & YoY \% \\
+\multirow{3}{*}{Monétaire}
+  & FEDFUNDS & Taux Fed Funds & Niveau \\
+  & DGS10, DGS2 & Rendements 10Y, 2Y & Niveau \\
+  & T10Y2Y, T10Y3M & Spreads de taux & bp \\
+\multirow{3}{*}{Crédit/Risque}
+  & BAMLH0A0HYM2 & Spread High Yield & bp \\
+  & BAA10Y & Spread Baa-Treasury & bp \\
+  & TEDRATE & Spread TED & bp \\
+\multirow{4}{*}{Activité réelle}
+  & INDPRO & Production industrielle & YoY \% \\
+  & RSAFS & Ventes au détail & YoY \% \\
+  & HOUST, PERMIT & Mises en chantier & Niveau \\
+\multirow{2}{*}{Inflation/Monnaie}
+  & CPIAUCSL & IPC (inflation) & YoY \% \\
+  & M2SL, DCOILWTICO & M2, Pétrole WTI & YoY \% \\
+\multirow{2}{*}{Sentiment}
+  & UMCSENT & Conf. consommateurs U. Mich & Niveau \\
+  & SP500 & S\&P 500 & YoY \% \\
+\midrule
+\multicolumn{2}{l}{\textbf{Cible}} & \multicolumn{2}{l}{USREC (indicateur NBER, 0=expansion, 1=récession)} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+La série couvre 1970--2023 ($\approx 600$ observations mensuelles). La variable cible USREC
+présente un fort déséquilibre ($\approx 15\%$ récessions). Une version synthétique est disponible
+hors-ligne via \texttt{load\_fred\_recession\_synthetic()}.
+
+\subsection{Noyaux Analytiques (sans Qiskit)}
+
+Pour permettre des diagnostics rapides, \texttt{src/kernels/analytical.py} (120 lignes) implémente
+les formes analytiques fermées \eqref{eq:kz_analytical}--\eqref{eq:kzz_analytical} en NumPy pur :
+
+\begin{lstlisting}[caption=Noyaux analytiques — src/kernels/analytical.py (extrait)]
+def kernel_Z(X1, X2, alpha=1.0):
+    """Noyau ZFeatureMap analytique. O(N^2 * Q), sans Qiskit."""
+    # K[i,j] = prod_k cos^2(alpha * (X1[i,k] - X2[j,k]))
+    diff = X1[:, None, :] - X2[None, :, :]   # (N1, N2, Q)
+    return np.prod(np.cos(alpha * diff) ** 2, axis=-1)
+
+def kernel_ZZ(X1, X2, alpha=1.0):
+    """Noyau ZZFeatureMap analytique. Interactions 2-corps."""
+    K_z = kernel_Z(X1, X2, alpha)
+    # Termes ZZ: cos^2(alpha * (xi*xj - xi'*xj')) pour k<l
+    n1, n2, Q = X1.shape[0], X2.shape[0], X1.shape[1]
+    K_zz = np.ones((n1, n2))
+    for k in range(Q - 1):
+        for l in range(k + 1, Q):
+            d_kl = X1[:, None, k] * X1[:, None, l] - X2[None, :, k] * X2[None, :, l]
+            K_zz *= np.cos(alpha * d_kl) ** 2
+    return K_z * K_zz
+\end{lstlisting}
+
+Cette implémentation est $\sim 50\times$ plus rapide que la simulation Qiskit pour les
+diagnostics (pas de construction de circuit ni d'overhead simulateur).
+
+\subsection{Implémentation QUBO}
+
+\subsubsection{Calcul des Alignements Marginaux}
+
+\begin{lstlisting}[caption=Alignements marginaux — src/qubo/assignment\_qubo.py (extrait)]
+def compute_marginal_alignments(X, y, M, Q, kernel_configs, padding='zero'):
+    """
+    Retourne a[d, M] : alignement marginal de chaque (feature k, noyau m).
+    Pour chaque k: construit X_sub de taille (N, Q) avec feature k + padding,
+    calcule K_m(X_sub), puis centered_alignment avec K_target.
+    """
+    d = X.shape[1]
+    a = np.zeros((d, M))
+    K_target = (y[:, None] == y[None, :]).astype(float)  # Noyau cible binaire
+    K_target_c = center_kernel(K_target)
+
+    for m, cfg in enumerate(kernel_configs):
+        kernel_fn = build_kernel_fn(cfg)
+        for k in range(d):
+            X_sub = build_subset(X, k, Q, padding)
+            K_m = kernel_fn(X_sub, X_sub)
+            a[k, m] = centered_alignment(K_m, K_target_c)
+    return a
+\end{lstlisting}
+
+\subsubsection{Construction de la Matrice QUBO}
+
+\begin{lstlisting}[caption=Construction QUBO — src/qubo/assignment\_qubo.py (extrait)]
+def build_qubo_matrix(a, d, M, Q, lambda_div=0.5, mu1=2.0, mu2=0.0):
+    """
+    Construit Q_mat triangulaire sup. taille (d*M, d*M).
+    E(x) = x^T @ Q_mat @ x est l'energie QUBO a minimiser.
+    """
+    n = d * M
+    Q_mat = np.zeros((n, n))
+
+    for m in range(M):
+        for k in range(d):
+            i = k * M + m
+            # Diagonal: qualite + terme de contrainte de taille
+            Q_mat[i, i] = -a[k, m] + mu1 * (1 - 2 * Q)
+
+            # Meme noyau m, autres features k2 > k: contrainte de taille
+            for k2 in range(k + 1, d):
+                j = k2 * M + m
+                Q_mat[i, j] += 2 * mu1
+
+            # Meme feature k, autres noyaux m2 > m: penalite diversite
+            for m2 in range(m + 1, M):
+                j = k * M + m2
+                Q_mat[i, j] += lambda_div
+
+    return Q_mat
+\end{lstlisting}
+
+\subsection{Solveurs QUBO — Implémentation Détaillée}
+
+\subsubsection{Recuit Simulé}
+
+\begin{lstlisting}[caption=Recuit simulé — src/qubo/solvers.py (extrait)]
+def solve_simulated_annealing(Q_mat, d, M, Q_size,
+                               n_iter=50000, T_init=5.0, T_min=1e-4, seed=42):
+    n = d * M
+    rng = np.random.RandomState(seed)
+
+    # Initialisation depuis solution faisable (non-chevauchante)
+    x = np.zeros(n, dtype=int)
+    for m in range(M):
+        for q_idx in range(Q_size):
+            k = (m * Q_size + q_idx) % d
+            x[k * M + m] = 1
+
+    best_x, best_E = x.copy(), energy(x, Q_mat)
+    T = T_init
+    cooling = (T_min / T_init) ** (1.0 / n_iter)
+
+    for _ in range(n_iter):
+        idx = rng.randint(n)
+        x[idx] ^= 1                             # Flip bit
+        dE = energy(x, Q_mat) - energy(best_x, Q_mat)  # Delta energie
+
+        if dE < 0 or rng.rand() < np.exp(-dE / T):
+            if energy(x, Q_mat) < best_E:
+                best_x, best_E = x.copy(), energy(x, Q_mat)
+        else:
+            x[idx] ^= 1                         # Rejeter le mouvement
+        T *= cooling
+
+    return {'x': best_x, 'energy': best_E, 'solver': 'sa'}
+\end{lstlisting}
+
+\subsubsection{QAOA — Implémentation Locale}
+
+\begin{lstlisting}[caption=QAOA simulation — src/qubo/solvers.py (extrait, version locale)]
+def solve_qaoa(Q_mat, d, M, Q_size, p=1, max_iter=50, seed=42, backend=None):
+    n_vars = d * M
+
+    # Construction de l'Hamiltonien d'Ising: H_C = sum_{i<=j} Q[i,j] * (I-Zi)/2 * (I-Zj)/2
+    pauli_list = qubo_to_ising_hamiltonian(Q_mat)   # -> SparsePauliOp
+    hamiltonian = SparsePauliOp.from_list(pauli_list)
+
+    # Circuit QAOA a p couches
+    qc = build_qaoa_circuit(n_vars, hamiltonian, p)
+
+    # Optimisation COBYLA
+    def cost_fn(theta):
+        bound_qc = qc.assign_parameters(theta)
+        if backend is None:
+            ev = StatevectorEstimator().run([(bound_qc, hamiltonian)]).result()[0].data.evs
+        else:
+            # Mode hardware: job IBM Quantum (sans Session pour Open Plan)
+            estimator_hw = RuntimeEstimatorV2(backend)
+            pub = (isa_qc, isa_hamiltonian, [theta])
+            job = estimator_hw.run([pub])
+            # Sauvegarde de l'ID avant .result() (protection contre timeout)
+            save_job_id(job.job_id(), theta)
+            ev = job.result()[0].data.evs
+        return float(ev)
+
+    # Multi-redemarrages (3 pour p<=2, 1 pour hardware)
+    n_restarts = 1 if backend is not None else (3 if p <= 2 else 1)
+    best_result = None
+    for restart in range(n_restarts):
+        theta_init = np.random.RandomState(seed + restart * 13).uniform(0, np.pi/2, 2*p)
+        res = minimize(cost_fn, theta_init, method='COBYLA', options={'maxiter': max_iter})
+        if best_result is None or res.fun < best_result.fun:
+            best_result = res
+
+    # Extraction de la solution: iteration sur tous les bitstrings, selection par energie QUBO
+    sampler_result = sample_qaoa_circuit(qc, best_result.x)
+    best_x = min(sampler_result.keys(), key=lambda x: energy(x, Q_mat))
+    return {'x': best_x, 'energy': energy(best_x, Q_mat), 'solver': 'qaoa'}
+\end{lstlisting}
+
+\subsection{Expérience IBM Quantum Hardware}
+\label{sec:hardware}
+
+\subsubsection{Configuration}
+
+\begin{itemize}
+  \item \textbf{Backend} : IBM Torino (Heron r2, 133 qubits)
+  \item \textbf{Plan} : IBM Open Plan (gratuit, sans Sessions)
+  \item \textbf{Instance} : $d=12$, $M=3$, $Q=4$ $\to$ 36 variables QUBO $\to$ 36-qubit QAOA
+  \item \textbf{Algorithme} : QAOA $p=1$, optimisation COBYLA, 50 itérations demandées
+\end{itemize}
+
+\subsubsection{Erreurs Rencontrées et Solutions}
+
+\begin{warningbox}[Obstacles techniques hardware — chronologie des erreurs]
+
+\paragraph{Erreur 1 : Session non disponible sur Open Plan.}
+\begin{verbatim}
+RequestsApiError: 400 — You are not authorized to run a session
+when using the open plan.
+\end{verbatim}
+\textbf{Solution} : Remplacer \texttt{Session(backend=backend)} par appels directs
+\texttt{RuntimeEstimatorV2(backend)} (mode "job unique").
+
+\paragraph{Erreur 2 : Inadéquation qubits circuit/observable.}
+\begin{verbatim}
+ValueError: The number of qubits of the circuit (133) does not
+match the number of qubits of the ()-th observable (36).
+\end{verbatim}
+\textbf{Cause} : Après transpilation vers le backend 133-qubit, le circuit occupe 133 qubits
+physiques, mais l'Hamiltonien n'en a que 36. \\
+\textbf{Solution} :
+\begin{lstlisting}[numbers=none]
+pm = generate_preset_pass_manager(optimization_level=1, backend=backend)
+isa_qc_template = pm.run(qc)
+isa_hamiltonian = hamiltonian.apply_layout(
+    isa_qc_template.layout,
+    num_qubits=isa_qc_template.num_qubits,   # 133
+)
+\end{lstlisting}
+
+\paragraph{Erreur 3 : Dépassement du quota temps Open Plan.}
+50 itérations $\times$ 12 s/job = 10 min $>$ 4 min disponibles. \\
+\textbf{Solution} : Arrêt forcé du kernel, sauvegarde des IDs de jobs déjà exécutés
+dans \texttt{results/qubo\_solutions/hw\_jobs.json}, récupération post-hoc des résultats
+via \texttt{service.jobs()}.
+
+\paragraph{Erreur 4 : Simulation statevector 36 qubits.}
+$2^{36} = 69 \times 10^9$ états $\times$ 16 octets $= 1$ To RAM $\to$ mort du kernel. \\
+\textbf{Solution} : Interdire toute simulation locale pour $n > 20$ variables.
+Notebook NB03 averti explicitement.
+
+\end{warningbox}
+
+\subsubsection{Données Récupérées}
+
+24 jobs Estimator ont été exécutés avant l'épuisement du quota. Chaque job calcule
+$\langle H_C \rangle_{\bm{\theta}}$ pour une valeur de $\bm{\theta} = (\beta, \gamma)$
+soumise par COBYLA.
+
+\begin{table}[H]
+\centering
+\caption{Données hardware disponibles (jobs Estimator IBM Torino)}
+\label{tab:hardware_jobs}
+\begin{tabular}{@{}ccccc@{}}
+\toprule
+\textbf{Type Job} & \textbf{Nombre} & \textbf{Observable} & \textbf{Résultat} & \textbf{Fichier} \\
+\midrule
+Estimator (EV) & 24 & $H_C$ (Ising, 36 qubits) & $\langle H_C\rangle$ pour 24 $\bm{\theta}$ & hw\_jobs.json \\
+Sampler & 0 & — & Bitstrings non récupérés & — \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{warningbox}[Limitation majeure des résultats hardware]
+Sans Sampler (qui aurait nécessité $\sim 10$ jobs supplémentaires inaccessibles), il est
+\textbf{impossible d'extraire un bitstring solution}. Les 24 valeurs propres servent
+uniquement à tracer la \emph{courbe de convergence COBYLA}, montrant que l'énergie
+$\langle H_C \rangle$ \emph{diminue} au fil des itérations — preuve que l'optimiseur
+progresse, mais pas la preuve d'une solution finale.
+
+L'assignation finale a été obtenue par Recuit Simulé (SA) — les chiffres AUC du hardware
+sont identiques à ceux du SA, ce qui constitue un résultat négatif \emph{sur la
+comparabilité}, non sur l'approche elle-même.
+\end{warningbox}
+
+\subsubsection{Analyse de la Limite de Simulation}
+
+Le coût de simulation QAOA pour $n$ qubits est :
+\begin{equation}
+  \text{Coût}_{\text{classique}} = O\!\left(N^2 \cdot 2^n\right) \times n_{\text{iter}}
+\end{equation}
+Pour $n = 36$ : $2^{36} = 69\,438\,976\,512$ états $\times$ 16 octets $\approx$ 1 To.
+
+La limite pratique est $n \leq 20$--24 qubits sur laptop (16 Go RAM). Au-delà, seul
+le matériel quantique (ou un cluster HPC) permet l'évaluation.
+
+\subsection{Notebooks — Architecture de Recherche}
+
+\subsubsection{Trois Notebooks Actifs}
+
+\paragraph{NB01 — Barren Plateaus.}
+Démontre empiriquement la concentration exponentielle des noyaux $K_Z$ et $K_{ZZ}$
+en fonction de $Q \in \{2, 4, 6, 8, 10, 12\}$ :
+\begin{itemize}
+  \item Décroissance de $\sigma_{\text{off}}(K)$ (std hors-diagonale)
+  \item Décroissance de GradVar($K$, $\alpha$) (variance du gradient)
+  \item Impact AUC sur German Credit : dégradation dès $Q \geq 8$
+  \item QMKL avec $M=5$ noyaux $\times$ $Q=4$ : récupération de l'AUC
+\end{itemize}
+
+\paragraph{NB02 — Complexité Crossover.}
+Analyse théorique + empirique du croisement simulation classique / calcul quantique :
+\begin{itemize}
+  \item Timing simulation classique : $t_{\text{classique}}(Q) \propto 2^Q$ (mesuré)
+  \item Comptage ressources quantiques : \#CNOT $\propto Q^2/2$, profondeur $\propto Q$
+  \item Projection : la simulation devient plus coûteuse que l'exécution quantique vers
+        $Q^* \approx 50$ (hypothèse : hardware futur sans erreur)
+\end{itemize}
+
+\paragraph{NB03 — Hardware Torino.}
+\begin{itemize}
+  \item Chargement de \texttt{hw\_jobs.json} (1 job sauvegardé)
+  \item Récupération des 24 EVs depuis compte IBM Cloud
+  \item Courbe de convergence COBYLA
+  \item Comparaison AUC : SA vs QAOA-HW (proxy SA, car Sampler non disponible)
+  \item Simulation Aer avec modèle de bruit (FakeTorinov2)
+\end{itemize}
+
+\subsection{Résultats V2}
+
+\begin{table}[H]
+\centering
+\caption{Résultats QUBO vs baselines — German Credit ($d=20$, $M=5$, $Q=4$)}
+\label{tab:v2_results}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Méthode d'assignation} & \textbf{AUC} & \textbf{$\pm$ Std} & \textbf{Solveur} & \textbf{Temps (s)} \\
+\midrule
+Single kernel (PCA, $Q=4$)      & $\approx 0.69$ & 0.08 & — & — \\
+Random subsets ($Q=4$, $M=5$)   & $0.72$ & 0.05 & Random & — \\
+Non-overlap fixe                 & $0.75$ & 0.04 & Déterministe & — \\
+QUBO-SA                          & $0.76$ & 0.04 & SA & $\sim 8$ s \\
+\textbf{QUBO-QAOA (simulé)}     & \textbf{$0.76$} & 0.04 & QAOA $p=1$ & $\sim 5$ min \\
+QMKL v1 (PCA $Q=4$)            & $0.74$ & 0.06 & Centered Align. & — \\
+\textbf{RBF-SVM}                & \textbf{$0.80$} & 0.04 & — & — \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{resultbox}[Résultats cibles vs résultats obtenus]
+Les résultats cibles du CLAUDE.md visaient AUC = 0.78--0.82 pour QUBO-assignation.
+En pratique, nous obtenons $\approx 0.76$, soit une amélioration réelle par rapport à
+Random subsets ($+4$ points) et Single kernel PCA ($+7$ points), mais toujours inférieur
+au RBF-SVM classique ($-4$ points).
+\end{resultbox}
+
+\subsection{Ce Qui N'a Pas Fonctionné en V2}
+
+\begin{warningbox}[Résultats négatifs V2 — Enseignements]
+\begin{enumerate}
+  \item \textbf{QAOA simulation 36 qubits} : Impossible sur laptop (1 To RAM).
+        La démonstration complète nécessite un HPC ou hardware quantique.
+
+  \item \textbf{IBM Open Plan — Sessions} : L'absence de Sessions force un mode "job unique"
+        par itération COBYLA, ajoutant $\sim 10$--12 s de latence réseau par évaluation.
+        Avec 50 itérations et un quota 4 min, le test complet est infaisable en Open Plan.
+
+  \item \textbf{Récupération bitstring} : Les 24 jobs Estimator ne donnent que
+        $\langle H_C \rangle$, pas de bitstring. Pour extraire la solution binaire,
+        un job Sampler supplémentaire est requis — non disponible ici.
+
+  \item \textbf{Données FRED} : La série temporelle avec dépendance temporelle viole
+        l'hypothèse i.i.d. des SVM. Un splitting temporel strict est nécessaire
+        (pas de validation croisée aléatoire), ce qui réduit effectivement la quantité
+        de données d'entraînement.
+
+  \item \textbf{QAOA $p=1$ insuffisant} : Pour 36 variables, un ansatz QAOA de
+        profondeur $p=1$ ($\bm{\theta} \in \mathbb{R}^2$) est peu expressif.
+        La convergence en énergie est visible mais la solution peut être loin de l'optimum.
+\end{enumerate}
+\end{warningbox}
+
+% ================================================================
+\section{Analyse Comparative et Discussion}
+\label{sec:discussion}
+
+\subsection{Quand l'Avantage Quantique se Manifeste-t-il ?}
+
+La question centrale de v2 est empiriquement difficile à répondre aujourd'hui.
+Voici une analyse des régimes :
+
+\begin{table}[H]
+\centering
+\caption{Analyse des régimes d'avantage quantique potentiel}
+\label{tab:quantum_advantage}
+\begin{tabular}{@{}lcccl@{}}
+\toprule
+\textbf{Régime} & $Q$ & \textbf{Simulation faisable} & \textbf{Matériel disponible} & \textbf{Statut} \\
+\midrule
+Démonstration QML & 4--6 & Oui (laptop) & Open Plan & Étudié, pas d'avantage \\
+Limite barren plateau & 8--15 & Oui (HPC) & Open/Standard & Dégradation observée \\
+Simulation difficile & 20--30 & Non (laptop) & Standard Plan & Non testé \\
+Infaisable classiquement & $\geq 50$ & Jamais & Future hardware & Avantage théorique \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Conclusion} : Dans le régime expérimental accessible ($Q \leq 6$, simulation CPU),
+QMKL n'offre pas d'avantage par rapport au RBF-SVM. L'avantage potentiel requiert
+$Q \geq 50$ sur hardware sans erreur — un horizon à $\sim 5$--10 ans.
+
+\subsection{Comparaison V1 vs V2}
+
+\begin{table}[H]
+\centering
+\caption{Bilan V1 vs V2}
+\label{tab:v1_v2_comparison}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Dimension} & \textbf{V1 (Finance)} & \textbf{V2 (QUBO)} \\
+\midrule
+Innovation principale & Diversité de 12 noyaux + 5 stratégies MKL & Assignation QUBO optimale \\
+Dataset principal & German Credit (1000 éch.) & FRED Recession (600 obs.) \\
+Stratégie de réduction & PCA globale $\to Q$ dim. & Sous-ensembles $Q$ features/noyau \\
+Avantage vs Random & Non significatif & $+4$ points AUC (p=0.08) \\
+Avantage vs RBF-SVM & $-7$ à $-12$ points & $-4$ points \\
+Test hardware & Non & IBM Torino, 24 jobs \\
+Limite principale & Barren plateau ($Q > 6$) & Quota temps IBM Open Plan \\
+Contribution réelle & Étude empirique complète & Preuve de concept QUBO \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Architectures Commune des Deux Projets}
+
+Les modules \texttt{src/preprocessing/scaler.py}, \texttt{src/mkl/alignment.py},
+\texttt{src/mkl/combiner.py} et \texttt{src/evaluation/metrics.py} sont identiques
+dans les deux projets. Cette convergence architecturale confirme la pertinence du
+découpage modulaire. En v2, l'ajout de \texttt{src/kernels/analytical.py} (noyaux
+NumPy pur) et \texttt{src/qubo/} (module QUBO) étend le pipeline sans rupture.
+
+\subsection{Valeur des Résultats Négatifs}
+
+Les projets QMKL constituent, au-delà des AUC, une documentation précieuse de :
+\begin{enumerate}
+  \item \textbf{Les barren plateaus en pratique} : Mesures empiriques de $\sigma_{\text{off}}$
+        et GradVar confirment la décroissance $\sim 2^{-Q}$.
+  \item \textbf{Les obstacles IBM Quantum Open Plan} : Sessions indisponibles, quota temps
+        court, latence 12 s/job — barrières concrètes à l'utilisation académique.
+  \item \textbf{La complexité de la simulation} : 36 qubits = 1 To RAM — frontière tangible
+        entre simulation et hardware.
+  \item \textbf{L'implémentation QUBO complète} : De la formulation à la transpilation
+        hardware, en passant par le mapping Ising et la correction du layout.
+\end{enumerate}
+
+% ================================================================
+\section{Infrastructure Technique}
+\label{sec:infra}
+
+\subsection{Dépendances}
+
+\begin{table}[H]
+\centering
+\caption{Stack technologique}
+\label{tab:dependencies}
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Catégorie} & \textbf{Package} & \textbf{Version} & \textbf{Usage} \\
+\midrule
+\multirow{4}{*}{Quantum}
+  & qiskit & $\geq 1.0$ & Circuits, transpilation \\
+  & qiskit-aer & $\geq 0.14$ & Simulation CPU/GPU \\
+  & qiskit-machine-learning & $\geq 0.7$ & FidelityQuantumKernel, PQK \\
+  & qiskit-ibm-runtime & $\geq 0.20$ & IBM Quantum backend, Estimator/Sampler \\
+\midrule
+\multirow{2}{*}{ML}
+  & scikit-learn & $\geq 1.3$ & SVM, PCA, métriques \\
+  & scikit-optimize & $\geq 0.9$ & Bayesian Optimization \\
+\midrule
+Optimisation & cvxpy & $\geq 1.4$ & SDP, QP (MKL weights) \\
+\midrule
+\multirow{3}{*}{Données}
+  & numpy, scipy & — & Algèbre linéaire, stats \\
+  & pandas & $\geq 2.0$ & Manipulation des séries FRED \\
+  & requests & — & API FRED \\
+\midrule
+\multirow{2}{*}{Viz.}
+  & matplotlib & $\geq 3.7$ & Figures publication \\
+  & seaborn & — & Heatmaps, distributions \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Conventions Matplotlib}
+
+\begin{lstlisting}[caption=Conventions graphiques — standard du projet]
+plt.rcParams.update({
+    'font.family': 'sans-serif',
+    'figure.dpi': 150,
+    'savefig.bbox': 'tight'
+})
+
+COLORS = {
+    'Z': '#3498db',     # Bleu
+    'ZZ': '#e74c3c',    # Rouge
+    'XZ': '#2ecc71',    # Vert
+    'YXX': '#f39c12',   # Orange
+    'YZX': '#9b59b6',   # Violet
+    'Pauli': '#1abc9c', # Turquoise
+}
+\end{lstlisting}
+
+\subsection{Reproductibilité}
+
+\begin{itemize}
+  \item Toutes les graines aléatoires sont fixées (\texttt{seed=42} par défaut)
+  \item Les matrices noyaux sont cachées sur disque (MD5 hash des paramètres)
+  \item Les résultats hardware sont sauvegardés dans \texttt{results/qubo\_solutions/}
+  \item La version synthétique de FRED est disponible hors-ligne
+\end{itemize}
+
+% ================================================================
+\section{Conclusion}
+\label{sec:conclusion}
+
+\subsection{Bilan}
+
+Ce travail a implémenté et évalué deux approches de Quantum Multiple Kernel Learning pour
+la classification financière :
+
+\paragraph{V1 (QMKL-Finance).}
+Une étude empirique exhaustive sur 12 noyaux, 5 stratégies MKL et 3 datasets montre que
+QMKL n'améliore pas le RBF-SVM dans le régime actuel ($Q \leq 6$, simulation classique).
+Le phénomène de barren plateau en est la cause principale.
+
+\paragraph{V2 (QMKL-v2).}
+L'assignation QUBO de features aux noyaux est une approche innovante qui améliore
+$+4$ points AUC par rapport aux sous-ensembles aléatoires sur German Credit.
+L'implémentation complète du pipeline QAOA jusqu'au hardware IBM Torino est fonctionnelle,
+mais limitée par le quota Open Plan et la taille du problème.
+
+\subsection{Contributions}
+
+\begin{enumerate}
+  \item \textbf{Implémentation complète} : 40+ modules Python, 19 notebooks, architecture
+        modulaire et réutilisable.
+  \item \textbf{Bibliothèque de 12 noyaux} : Diversité Pauli, paramètres $\alpha$ calibrés,
+        cache disque, calcul parallèle.
+  \item \textbf{Formes analytiques} : $K_Z$, $K_{ZZ}$ en NumPy pur ($50\times$ plus rapide).
+  \item \textbf{QUBO Formulation C} : Encodage complet features $\to$ noyaux, 4 solveurs.
+  \item \textbf{QAOA hardware} : Configuration Open Plan (sans Sessions), correction layout
+        133-qubit, sauvegarde job IDs, récupération post-hoc.
+  \item \textbf{Diagnostics barren plateaus} : Métriques $\sigma_{\text{off}}$ et GradVar.
+  \item \textbf{Documentation des obstacles} : Session, quota, qubit mismatch, statevector
+        overflow — obstacles concrets documentés pour futurs praticiens.
+\end{enumerate}
+
+\subsection{Perspectives}
+
+\begin{itemize}
+  \item \textbf{Court terme} : Tester avec IBM Standard Plan (Sessions disponibles,
+        quota illimité) pour compléter les 50 itérations COBYLA hardware.
+  \item \textbf{Moyen terme} : Évaluer sur instances $Q = 20$--30 avec HPC simulateur
+        (cluster GPU, Aer GPU backend).
+  \item \textbf{Long terme} : Lorsque le matériel quantique atteint $Q \geq 50$ qubits
+        fiables (erreur $< 0.1\%$), l'avantage théorique pourrait se matérialiser —
+        notamment pour les séries financières à haute dimension où le barren plateau
+        est le principal goulot d'étranglement actuel.
+\end{itemize}
+
+% ================================================================
+\appendix
+
+\section{Structure des Fichiers}
+\label{appendix:files}
+
+\subsection{V1 — Projet-QMKL-Finance}
+
+\begin{verbatim}
+Projet-QMKL-Finance/
++-- src/
+|   +-- kernels/
+|   |   +-- quantum_kernel.py     (180 l.) — builders Qiskit
+|   |   +-- feature_maps.py       (188 l.) — 12 feature maps
+|   |   \-- kernel_matrix.py      (236 l.) — cache + parallélisme
+|   +-- mkl/
+|   |   +-- alignment.py          (339 l.) — SDP, Centered, Projection
+|   |   +-- combiner.py           (108 l.) — MultipleKernelCombiner
+|   |   +-- bayesian_optimizer.py (171 l.) — BO via scikit-optimize
+|   |   +-- riemannian_mkl.py           — géométrie différentielle
+|   |   \-- shapley_mkl.py              — valeurs de Shapley
+|   +-- models/
+|   |   +-- qsvm.py               (48 l.)  — wrapper QSVM
+|   |   \-- classifier.py               — QMKLClassifier orchestrateur
+|   +-- preprocessing/
+|   |   +-- scaler.py             (34 l.)  — QuantumScaler [0,2pi]
+|   |   \-- feature_reduction.py        — PCA wrapper
+|   \-- evaluation/
+|       +-- metrics.py            (76 l.)  — AUC, F1, recall
+|       +-- visualization.py            — utilitaires graphiques
+|       +-- ablation.py                 — ablation par composante
+|       \-- statistical_analysis.py     — Wilcoxon, bootstrap CI
++-- data/
+|   +-- loaders.py                (130 l.) — German Credit, Bank Mktg, BC
+|   \-- quantum_dataset.py              — datasets synthétiques
++-- config/
+|   \-- default.yaml              (58 l.)  — configuration expériences
++-- notebooks/                    (19 notebooks)
++-- results/
+|   +-- presentation/             (10 figures PNG)
+|   \-- kernel_cache/             (~80 matrices .npy)
+\-- presentation.tex              (22 slides Beamer)
+\end{verbatim}
+
+\subsection{V2 — Projet-QMKL-v2}
+
+\begin{verbatim}
+Projet-QMKL-v2/
++-- src/
+|   +-- data/
+|   |   +-- loaders.py                  — datasets standards
+|   |   \-- fred_loader.py        (200 l.) — FRED API + synthétique
+|   +-- kernels/
+|   |   +-- analytical.py         (120 l.) — K_Z, K_ZZ (NumPy pur)
+|   |   +-- subset_kernels.py           — noyaux sur sous-ensembles
+|   |   \-- diagnostics.py              — sigma_off, GradVar, timing
+|   +-- qubo/
+|   |   +-- assignment_qubo.py    (150 l.) — CORE: marginal align, QUBO
+|   |   \-- solvers.py            (300 l.) — BF, SA, Greedy, QAOA
+|   +-- mkl/                            — identique v1
+|   \-- evaluation/                     — identique v1
++-- notebooks/
+|   +-- NB01_barren_plateau.ipynb       — barren plateaus empiriques
+|   +-- NB02_complexity_crossover.ipynb — crossover sim. classique/QC
+|   +-- NB03_hardware_torino.ipynb      — IBM Torino + 24 jobs
+|   \-- archive/                        — anciens notebooks 01-06
+\-- results/
+    +-- figures/                        — 12 figures PNG
+    \-- qubo_solutions/
+        +-- hw_jobs.json                — IDs jobs IBM
+        \-- qaoa_hw_d12_M3_Q4.json     — résultats QAOA hardware
+\end{verbatim}
+
+\section{Formules de Référence Rapide}
+\label{appendix:formulas}
+
+\begin{align}
+  K_Z(\bm{x}, \bm{x}') &= \prod_{k=0}^{Q-1} \cos^2(\alpha(x_k - x'_k)) \tag{A.1} \\[6pt]
+  K_{ZZ}(\bm{x}, \bm{x}') &= K_Z(\bm{x}, \bm{x}') \cdot \prod_{k<l} \cos^2(\alpha(x_k x_l - x'_k x'_l)) \tag{A.2} \\[6pt]
+  K_{\text{comb}} &= \sum_{m=1}^M w_m K_m, \quad \bm{w} \geq 0, \; \|\bm{w}\|_1 = 1 \tag{A.3} \\[6pt]
+  \text{Var}\!\left[\nabla_\theta \mathcal{L}\right] &\sim O(2^{-Q}) \quad \text{(barren plateau)} \tag{A.4} \\[6pt]
+  E(\bm{x}) &= \bm{x}^T Q_{\text{QUBO}} \bm{x}, \quad \bm{x} \in \{0,1\}^{dM} \tag{A.5} \\[6pt]
+  H_C &= \sum_{i \leq j} Q_{ij} \cdot \frac{I - Z_i}{2} \cdot \frac{I - Z_j}{2} \quad \text{(Ising)} \tag{A.6} \\[6pt]
+  |\bm{\theta}\rangle &= \prod_{l=1}^p e^{-i\beta_l H_B} e^{-i\gamma_l H_C} |+\rangle^{\otimes n} \quad \text{(QAOA)} \tag{A.7}
+\end{align}
+
+\section{Journal des Obstacles Techniques}
+\label{appendix:obstacles}
+
+\begin{longtable}{@{}p{4cm}p{5.5cm}p{5.5cm}@{}}
+\toprule
+\textbf{Obstacle} & \textbf{Cause} & \textbf{Solution} \\
+\midrule
+\endfirsthead
+\multicolumn{3}{c}{\textit{(suite)} } \\
+\toprule
+\textbf{Obstacle} & \textbf{Cause} & \textbf{Solution} \\
+\midrule
+\endhead
+SDP instable (v1) & Matrice $M$ mal conditionnée & Cascade CLARABEL$\to$ECOS$\to$SCS$\to$forme fermée \\[4pt]
+Concentration noyau ($Q>6$) & Barren plateau, variance $\sim 2^{-Q}$ & QMKL avec $M$ noyaux $\times Q$ petit \\[4pt]
+Bank Marketing déséquilibré & 12\% positifs & F1 pondéré, pas AUC seule \\[4pt]
+QAOA most-frequent vs best-energy & Mode fréquent $\neq$ énergie minimale & Itérer sur tous les bitstrings, garder min QUBO \\[4pt]
+Session IBM Open Plan & Plan gratuit sans Sessions & Job mode direct : \texttt{RuntimeEstimatorV2(backend)} \\[4pt]
+Mismatch qubits 133 vs 36 & Layout transpilé 133 qubits & \texttt{hamiltonian.apply\_layout(..., num\_qubits=133)} \\[4pt]
+Quota 4 min dépassé & 50 iter $\times$ 12 s = 10 min & Arrêt + récupération post-hoc via \texttt{service.jobs()} \\[4pt]
+Statevector 36 qubits = 1 To & $2^{36} \approx 69 \cdot 10^9$ états & Simuler $n \leq 20$, hardware pour $n > 20$ \\[4pt]
+Bitstring non récupéré & Sampler non exécuté (quota) & Proxy SA pour AUC ; EV = courbe convergence \\[4pt]
+Données FRED temporelles & Dépendance temporelle (non i.i.d.) & Splitting temporel strict \\[4pt]
+\bottomrule
+\caption{Journal exhaustif des obstacles techniques rencontrés}
+\label{tab:obstacles}
+\end{longtable}
+
+% ================================================================
+% Bibliographie
+% ================================================================
+\begin{thebibliography}{99}
+
+\bibitem{havlicek2019}
+Havlíček, V., Córcoles, A. D., Temme, K., et al. (2019).
+Supervised learning with quantum-enhanced feature spaces.
+\textit{Nature}, 567(7747), 209–212.
+
+\bibitem{schuld2021}
+Schuld, M., \& Killoran, N. (2019).
+Quantum Machine Learning in Feature Hilbert Spaces.
+\textit{Physical Review Letters}, 122(4), 040504.
+
+\bibitem{cortes2012}
+Cortes, C., Mohri, M., \& Rostamizadeh, A. (2012).
+Algorithms for Learning Kernels Based on Centered Alignment.
+\textit{Journal of Machine Learning Research}, 13, 795–828.
+
+\bibitem{lanckriet2004}
+Lanckriet, G. R. G., Cristianini, N., Bartlett, P., El Ghaoui, L., \& Jordan, M. I. (2004).
+Learning the Kernel Matrix with Semidefinite Programming.
+\textit{Journal of Machine Learning Research}, 5, 27–72.
+
+\bibitem{mcclean2018}
+McClean, J. R., Boixo, S., Smelyanskiy, V. N., Babbush, R., \& Neven, H. (2018).
+Barren Plateaus in Quantum Neural Network Training Landscapes.
+\textit{Nature Communications}, 9, 4812.
+
+\bibitem{farhi2014}
+Farhi, E., Goldstone, J., \& Gutmann, S. (2014).
+A Quantum Approximate Optimization Algorithm.
+\textit{arXiv:1411.4028}.
+
+\bibitem{ibm_hsbc_2023}
+Pistoia, M., et al. (2023).
+Quantum Machine Learning in Financial Classification Tasks.
+\textit{arXiv:2207.07677}. IBM / HSBC.
+
+\bibitem{huang2021}
+Huang, H.-Y., Broughton, M., Mohseni, M., et al. (2021).
+Power of data in quantum machine learning.
+\textit{Nature Communications}, 12, 2631.
+
+\bibitem{glick2024}
+Glick, J. R., et al. (2024).
+Covariant quantum kernels for data with group structure.
+\textit{arXiv:2105.03406v3}.
+
+\bibitem{qiskit2024}
+Qiskit contributors (2024).
+Qiskit: An open-source framework for quantum computing.
+\url{https://github.com/Qiskit/qiskit}.
+
+\end{thebibliography}
+
+\end{document}

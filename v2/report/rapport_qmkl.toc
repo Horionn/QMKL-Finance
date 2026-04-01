@@ -1,0 +1,93 @@
+\babel@toc {french}{}\relax 
+\contentsline {section}{\numberline {1}Introduction et Contexte}{3}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Motivation}{3}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}Objectifs des deux projets}{3}{subsection.1.2}%
+\contentsline {paragraph}{V1 — Projet-QMKL-Finance.}{3}{subsection.1.2}%
+\contentsline {paragraph}{V2 — Projet-QMKL-v2.}{3}{subsection.1.2}%
+\contentsline {subsection}{\numberline {1.3}Question de recherche centrale}{3}{subsection.1.3}%
+\contentsline {section}{\numberline {2}Fondements Théoriques}{3}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Noyaux Quantiques}{3}{subsection.2.1}%
+\contentsline {subsubsection}{\numberline {2.1.1}Feature Map et Espace de Hilbert}{3}{subsubsection.2.1.1}%
+\contentsline {subsubsection}{\numberline {2.1.2}Noyau de Fidélité}{4}{subsubsection.2.1.2}%
+\contentsline {subsubsection}{\numberline {2.1.3}Noyau Projeté}{4}{subsubsection.2.1.3}%
+\contentsline {subsection}{\numberline {2.2}Familles de Feature Maps Utilisées}{4}{subsection.2.2}%
+\contentsline {subsubsection}{\numberline {2.2.1}ZFeatureMap (local, sans intrication)}{4}{subsubsection.2.2.1}%
+\contentsline {subsubsection}{\numberline {2.2.2}ZZFeatureMap (avec intrication)}{4}{subsubsection.2.2.2}%
+\contentsline {subsection}{\numberline {2.3}Multiple Kernel Learning (MKL)}{5}{subsection.2.3}%
+\contentsline {subsubsection}{\numberline {2.3.1}Combinaison linéaire}{5}{subsubsection.2.3.1}%
+\contentsline {subsubsection}{\numberline {2.3.2}Alignement centré}{5}{subsubsection.2.3.2}%
+\contentsline {subsubsection}{\numberline {2.3.3}Alignement SDP}{5}{subsubsection.2.3.3}%
+\contentsline {subsection}{\numberline {2.4}Barren Plateaus}{5}{subsection.2.4}%
+\contentsline {subsubsection}{\numberline {2.4.1}Phénomène}{5}{subsubsection.2.4.1}%
+\contentsline {subsubsection}{\numberline {2.4.2}Conséquence sur les noyaux}{5}{subsubsection.2.4.2}%
+\contentsline {subsubsection}{\numberline {2.4.3}Mesure empirique}{6}{subsubsection.2.4.3}%
+\contentsline {subsection}{\numberline {2.5}Formulation QUBO pour l'Assignation de Features}{6}{subsection.2.5}%
+\contentsline {subsubsection}{\numberline {2.5.1}Problème d'assignation}{6}{subsubsection.2.5.1}%
+\contentsline {subsubsection}{\numberline {2.5.2}Formulation C (recommandée)}{6}{subsubsection.2.5.2}%
+\contentsline {paragraph}{Alignements marginaux $a_{k,m}$.}{6}{equation.2.15}%
+\contentsline {paragraph}{Matrice QUBO.}{6}{equation.2.16}%
+\contentsline {subsubsection}{\numberline {2.5.3}Solveurs QUBO}{7}{subsubsection.2.5.3}%
+\contentsline {subsubsection}{\numberline {2.5.4}QAOA — Quantum Approximate Optimization Algorithm}{7}{subsubsection.2.5.4}%
+\contentsline {section}{\numberline {3}Projet V1 — QMKL-Finance}{7}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Architecture}{7}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Jeux de Données}{7}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Bibliothèque de 12 Noyaux Quantiques}{8}{subsection.3.3}%
+\contentsline {paragraph}{Choix du paramètre $\alpha $.}{8}{table.caption.4}%
+\contentsline {subsection}{\numberline {3.4}Stratégies MKL}{8}{subsection.3.4}%
+\contentsline {subsubsection}{\numberline {3.4.1}Implémentation de l'Alignement Centré}{8}{subsubsection.3.4.1}%
+\contentsline {subsubsection}{\numberline {3.4.2}Optimisation Bayésienne}{9}{subsubsection.3.4.2}%
+\contentsline {subsection}{\numberline {3.5}Système de Cache de Noyaux}{9}{subsection.3.5}%
+\contentsline {subsection}{\numberline {3.6}Résultats Empiriques}{9}{subsection.3.6}%
+\contentsline {subsubsection}{\numberline {3.6.1}Configuration expérimentale}{9}{subsubsection.3.6.1}%
+\contentsline {subsection}{\numberline {3.7}Analyses Avancées}{10}{subsection.3.7}%
+\contentsline {subsubsection}{\numberline {3.7.1}Ablation sur Q (nombre de qubits)}{10}{subsubsection.3.7.1}%
+\contentsline {subsubsection}{\numberline {3.7.2}Interprétabilité : Valeurs de Shapley}{10}{subsubsection.3.7.2}%
+\contentsline {subsubsection}{\numberline {3.7.3}MKL Riemannien}{11}{subsubsection.3.7.3}%
+\contentsline {subsection}{\numberline {3.8}Ce Qui N'a Pas Fonctionné en V1}{11}{subsection.3.8}%
+\contentsline {section}{\numberline {4}Projet V2 — QMKL-v2 (Assignation QUBO)}{11}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Motivation : Dépasser les Barren Plateaus via l'Assignation}{11}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Pipeline V2}{12}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Données FRED (Macroéconomiques)}{12}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.4}Noyaux Analytiques (sans Qiskit)}{12}{subsection.4.4}%
+\contentsline {subsection}{\numberline {4.5}Implémentation QUBO}{13}{subsection.4.5}%
+\contentsline {subsubsection}{\numberline {4.5.1}Calcul des Alignements Marginaux}{13}{subsubsection.4.5.1}%
+\contentsline {subsubsection}{\numberline {4.5.2}Construction de la Matrice QUBO}{13}{subsubsection.4.5.2}%
+\contentsline {subsection}{\numberline {4.6}Solveurs QUBO — Implémentation Détaillée}{14}{subsection.4.6}%
+\contentsline {subsubsection}{\numberline {4.6.1}Recuit Simulé}{14}{subsubsection.4.6.1}%
+\contentsline {subsubsection}{\numberline {4.6.2}QAOA — Implémentation Locale}{15}{subsubsection.4.6.2}%
+\contentsline {subsection}{\numberline {4.7}Expérience IBM Quantum Hardware}{16}{subsection.4.7}%
+\contentsline {subsubsection}{\numberline {4.7.1}Configuration}{16}{subsubsection.4.7.1}%
+\contentsline {subsubsection}{\numberline {4.7.2}Erreurs Rencontrées et Solutions}{16}{subsubsection.4.7.2}%
+\contentsline {paragraph}{Erreur 1 : Session non disponible sur Open Plan.}{16}{subsubsection.4.7.2}%
+\contentsline {paragraph}{Erreur 2 : Inadéquation qubits circuit/observable.}{16}{subsubsection.4.7.2}%
+\contentsline {paragraph}{Erreur 3 : Dépassement du quota temps Open Plan.}{16}{lstnumber.-1.6}%
+\contentsline {paragraph}{Erreur 4 : Simulation statevector 36 qubits.}{16}{lstnumber.-1.6}%
+\contentsline {subsubsection}{\numberline {4.7.3}Données Récupérées}{17}{subsubsection.4.7.3}%
+\contentsline {subsubsection}{\numberline {4.7.4}Analyse de la Limite de Simulation}{17}{subsubsection.4.7.4}%
+\contentsline {subsection}{\numberline {4.8}Notebooks — Architecture de Recherche}{17}{subsection.4.8}%
+\contentsline {subsubsection}{\numberline {4.8.1}Trois Notebooks Actifs}{17}{subsubsection.4.8.1}%
+\contentsline {paragraph}{NB01 — Barren Plateaus.}{17}{subsubsection.4.8.1}%
+\contentsline {paragraph}{NB02 — Complexité Crossover.}{18}{subsubsection.4.8.1}%
+\contentsline {paragraph}{NB03 — Hardware Torino.}{18}{subsubsection.4.8.1}%
+\contentsline {subsection}{\numberline {4.9}Résultats V2}{18}{subsection.4.9}%
+\contentsline {subsection}{\numberline {4.10}Ce Qui N'a Pas Fonctionné en V2}{18}{subsection.4.10}%
+\contentsline {section}{\numberline {5}Analyse Comparative et Discussion}{19}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Quand l'Avantage Quantique se Manifeste-t-il ?}{19}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Comparaison V1 vs V2}{19}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}Architectures Commune des Deux Projets}{20}{subsection.5.3}%
+\contentsline {subsection}{\numberline {5.4}Valeur des Résultats Négatifs}{20}{subsection.5.4}%
+\contentsline {section}{\numberline {6}Infrastructure Technique}{20}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Dépendances}{20}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Conventions Matplotlib}{20}{subsection.6.2}%
+\contentsline {subsection}{\numberline {6.3}Reproductibilité}{21}{subsection.6.3}%
+\contentsline {section}{\numberline {7}Conclusion}{21}{section.7}%
+\contentsline {subsection}{\numberline {7.1}Bilan}{21}{subsection.7.1}%
+\contentsline {paragraph}{V1 (QMKL-Finance).}{21}{subsection.7.1}%
+\contentsline {paragraph}{V2 (QMKL-v2).}{21}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}Contributions}{21}{subsection.7.2}%
+\contentsline {subsection}{\numberline {7.3}Perspectives}{22}{subsection.7.3}%
+\contentsline {section}{\numberline {A}Structure des Fichiers}{22}{appendix.A}%
+\contentsline {subsection}{\numberline {A.1}V1 — Projet-QMKL-Finance}{22}{subsection.A.1}%
+\contentsline {subsection}{\numberline {A.2}V2 — Projet-QMKL-v2}{23}{subsection.A.2}%
+\contentsline {section}{\numberline {B}Formules de Référence Rapide}{24}{appendix.B}%
+\contentsline {section}{\numberline {C}Journal des Obstacles Techniques}{24}{appendix.C}%

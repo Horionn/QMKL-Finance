@@ -1,0 +1,8 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+results/kernel_cache/*.npy
+results/kernel_cache/*.csv
+results/qubo_solutions/*.json
+.ipynb_checkpoints/
