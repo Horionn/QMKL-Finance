@@ -713,9 +713,14 @@ $Q \in \{2, 4, 6, 8, 10, 12\}$ sur le jeu de données German Credit.
 Les deux métriques $\sigma_{\mathrm{off}}$ et $\mathrm{GradVar}$ décroissent
 toutes deux de manière compatible avec une loi en $2^{-Q}$, confirmant le
 phénomène prédit théoriquement.
-L'AUC d'un noyau unique se dégrade dès $Q \geq 8$ pour les noyaux $K_{ZZ}$
-sur German Credit, cohérent avec le seuil $Q \approx 6$--8 identifié en v1
-(le seuil exact dépend de la famille de noyau et du jeu de données).
+Pour le noyau $K_Z$ sur Breast Cancer, l'AUC reste au niveau aléatoire
+($\approx 0.5$) \emph{pour tous} $Q$, ce qui indique que le noyau $K_Z$ avec
+scaling $[0, 2\pi]$ et $\alpha=1.0$ est inefficace dans ce régime
+(les valeurs hors-diagonale tendent vers $0$ plutôt que vers $1$,
+rendant la matrice noyau presque nulle).
+Pour les noyaux $K_{ZZ}$ sur German Credit, la dégradation de l'AUC
+se manifeste dès $Q \approx 6$--8 (le seuil exact dépend de la famille de noyau
+et du jeu de données).
 En revanche, la combinaison QMKL avec $M = 5$ noyaux indépendants de
 $Q = 4$ qubits chacun permet de retrouver une AUC comparable à celle du
 meilleur noyau unique à $Q = 4$, tout en utilisant collectivement 20 features.
@@ -744,8 +749,9 @@ $K_{ZZ}$ & 0.199 & 0.009 & $4\times10^{-5}$ & $\approx0$ & $\approx0$ & $\approx
 $K_{ZZ}$, avec ajustements exponentiels
 ($K_Z$: $0.696\,e^{-0.442\,Q}$~;~$K_{ZZ}$: $4.485\,e^{-1.557\,Q}$).
 Droite : AUC d'un noyau $K_Z$ unique en fonction de $Q$ sur Breast Cancer ---
-la performance chute vers $0.5$ (niveau aléatoire) dès $Q \geq 8$,
-attestant l'effacement de l'information discriminante par concentration du noyau.}
+l'AUC reste au niveau aléatoire ($\approx 0.5$) \emph{pour tous} $Q \in \{2,\ldots,12\}$,
+attestant que la concentration rend le noyau $K_Z$ inefficace indépendamment du nombre
+de qubits dans ce régime de prétraitement ($\alpha=1.0$, scaling $[0,2\pi]$).}
 \label{fig:barren}
 \end{figure}
 
@@ -756,12 +762,12 @@ La deuxième étude examine à quel régime de $Q$ la simulation classique
 devient infaisable.
 
 \paragraph{Coût de la simulation classique.}
-La simulation d'un circuit quantique de $n$ qubits par vecteur d'état
-requiert $O(2^n)$ amplitudes complexes en mémoire, soit $2^n \times 16$
-octets.
-Pour une matrice noyau de $N^2$ paires, le coût est $O(N^2 \cdot 2^n)$.
-On mesure empiriquement ce temps en fonction de $Q$, confirmant la
-croissance exponentielle.
+La simulation d'un circuit quantique de $Q$ qubits par vecteur d'état
+requiert $2^Q$ amplitudes complexes en mémoire, soit $2^Q \times 16$
+octets (arithmétique complexe 128 bits).
+Un laptop de 8\,Go atteint sa limite à $Q \approx 29$,
+un workstation de 64\,Go à $Q \approx 32$,
+et un data center d'un pétaoctet à $Q \approx 46$.
 
 \paragraph{Ressources du circuit quantique.}
 À l'inverse, le nombre de portes d'un circuit ZZFeatureMap croît polynomialement :
@@ -780,12 +786,14 @@ plus efficace.
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{figures/fig_complexity.pdf}
-\caption{Gauche : temps de calcul de la matrice $K_{ZZ}$ ($N=100$) en fonction de $Q$
-sur l'implémentation analytique NumPy — la croissance est polynomiale
-(échelle log--log, pente $\approx 2$, dominée par les $N^2$ paires).
-Droite : nombre de portes du circuit ZZFeatureMap (CNOT et portes à un qubit)
-en fonction de $Q$ — la croissance est polynomiale $O(Q^2)$,
-ce qui contraste avec le coût $O(2^Q)$ de la simulation par vecteur d'état.}
+\caption{Gauche : mémoire requise pour la simulation par vecteur d'état
+($2^Q \times 16$\,o en complexe 128 bits) en fonction de $Q$ ---
+la croissance exponentielle rend la simulation impraticable
+au-delà de $Q \approx 29$ (laptop, 8\,Go), $Q \approx 32$ (workstation, 64\,Go)
+et $Q \approx 46$ (data center, $10^6$\,Go).
+Droite : nombre de portes du circuit ZZFeatureMap en fonction de $Q$ ---
+CNOT $= Q(Q-1)$ et portes 1-qubit $= 3Q$, soit une croissance polynomiale $O(Q^2)$,
+incomparablement plus favorable que la simulation classique.}
 \label{fig:complexity}
 \end{figure}
 
@@ -844,13 +852,15 @@ sont présentées ci-dessous.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.7\textwidth]{figures/fig_hw_convergence.pdf}
-\caption{Convergence QAOA sur IBM Torino (Heron~r2) : 22~itérations COBYLA
-pour l'instance $d=12$, $M=3$, $Q=4$ (36~qubits).
-La ligne pointillée indique la meilleure valeur atteinte
-($\langle H_C \rangle^* = -24.21$ à l'itération~5).
-L'événement aberrant à l'itération~20 ($\langle H_C \rangle = +11.77$,
-hors échelle en rouge) est attribué à une erreur hardware transitoire.}
+\includegraphics[width=0.75\textwidth]{figures/fig_hw_convergence.pdf}
+\caption{Exécution QAOA sur IBM Torino (Heron~r2) : données expérimentales réelles,
+22~itérations COBYLA pour l'instance $d=12$, $M=3$, $Q=4$ (36~qubits).
+La courbe verte (minimum courant) montre la progression de l'optimiseur ;
+la meilleure valeur atteinte est $\langle H_C \rangle^* = -24.21$ (itération~5).
+L'événement rouge (itération~20, $\langle H_C \rangle = +11.77$)
+est une erreur hardware transitoire.
+Le quota de calcul IBM Open Plan (4\,min) est épuisé à l'itération~22,
+interrompant la convergence avant les 50~itérations prévues.}
 \label{fig:hw_convergence}
 \end{figure}
 
@@ -867,7 +877,7 @@ noyaux analytiques $K_Z$, $\alpha=1.0$)}
 \textbf{Stratégie d'assignation} & \textbf{AUC} & \textbf{$\pm$ Std} & \textbf{Solveur} \\
 \midrule
 Sous-ensembles aléatoires         & 0.932 & 0.031 & Aléatoire \\
-Assignation non-chevauchante fixe & 0.927 & 0.035 & Déterministe \\
+Blocs fixes (features $0..Q{-}1$ à $K_0$, etc.) & 0.927 & 0.035 & Déterministe \\
 QUBO -- Greedy                    & \textbf{0.974} & 0.019 & Greedy \\
 \midrule
 RBF-SVM (référence classique)     & 0.996 & 0.004 & -- \\
@@ -888,9 +898,11 @@ Le RBF-SVM classique reste supérieur de $+2.2$ points d'AUC.
 \caption{AUC-ROC moyenne ($\pm$ écart-type) pour trois stratégies d'assignation
 de features et la référence RBF-SVM, sur Breast Cancer
 ($d=10$, $M=3$, $Q=3$, 5-fold $\times$ 20~tirages).
-Les barres d'erreur représentent un écart-type.
-L'assignation QUBO-Greedy réduit significativement la variance tout en
-améliorant la performance médiane.}
+\emph{Aléatoire} : features tirées aléatoirement (avec répétition possible).
+\emph{Blocs fixes} : features consécutives $k=0..Q{-}1$, $Q..2Q{-}1$, etc.
+\emph{QUBO-Greedy} : assignation par maximisation greedy des alignements marginaux.
+L'assignation QUBO-Greedy ($0.974 \pm 0.019$) améliore de $+4.2$ points
+l'assignation aléatoire ($0.932$) et réduit la variance de moitié.}
 \label{fig:auc_comparison}
 \end{figure}
 

@@ -166,12 +166,12 @@ ax = axes[1]
 ax.errorbar(Q_vals, auc_Q, yerr=auc_Q_std,
             fmt='o-', color=C_Z, lw=2, ms=7, capsize=4,
             label=r'$K_Z$ (ACP + SVM)')
+ax.axhline(0.5, color='gray', ls=':', lw=1.5, alpha=0.8, label='Niveau aléatoire')
 ax.axvspan(6.5, 12.5, alpha=0.08, color='red', label='Régime barren plateau')
 ax.set_xlabel('Nombre de qubits $Q$')
 ax.set_ylabel('AUC ROC')
-ax.set_title('Performance de classification')
+ax.set_title('Dégradation de la performance ($K_Z$, Breast Cancer)')
 ax.set_xticks(Q_vals)
-ax.set_ylim(0.85, 1.01)
 ax.legend(fontsize=9)
 ax.grid(True, alpha=0.3)
 
@@ -183,85 +183,77 @@ plt.close(fig)
 print("  → fig_barren_plateau.pdf sauvegardé")
 
 # ─────────────────────────────────────────────────────────────
-# FIGURE 2 — Croisement de Complexité
+# FIGURE 2 — Complexité : simulation classique vs circuit quantique
 # ─────────────────────────────────────────────────────────────
-print("\n=== Figure 2 : Croisement de Complexité ===")
+print("\n=== Figure 2 : Complexité simulation vs circuit ===")
 
-Q_time = list(range(2, 21, 2))   # 2, 4, 6, ..., 20
-N_TIME = 100
-times  = []
+# Mémoire requise pour la simulation statevector : 2^Q amplitudes * 16 octets (complex128)
+Q_theory = np.arange(2, 52, 2)
+mem_gb   = (2.0 ** Q_theory) * 16 / 1e9   # en Go
 
-for Q in Q_time:
-    rng = np.random.RandomState(0)
-    X = rng.uniform(0, 2 * np.pi, (N_TIME, Q))
-    ts = []
-    for _ in range(3):
-        t0 = time.perf_counter()
-        kernel_ZZ(X, X, alpha=1.0)
-        ts.append(time.perf_counter() - t0)
-    med = float(np.median(ts))
-    times.append(med)
-    print(f"  Q={Q:2d}  t={med*1000:.2f} ms")
+print("  Mémoire statevector :")
+for Q, m in zip(Q_theory, mem_gb):
+    if m < 1e6:
+        print(f"  Q={Q:2d}  mem={m:.3g} Go")
 
-times  = np.array(times)
-Q_tarr = np.array(Q_time, dtype=float)
+# Seuils RAM typiques
+RAM_LIMITS = [(8, '8 Go (laptop)',       '--', '#7f8c8d'),
+              (64, '64 Go (workstation)', ':',  '#e67e22'),
+              (1e6, '1 Po (data center)', '-.', '#8e44ad')]
+for gb, label, _, _ in RAM_LIMITS:
+    q_star = np.log2(gb * 1e9 / 16)
+    print(f"  Limite {label}: Q* = {q_star:.1f}")
 
-# Ajustement : log(t) = a + b*Q  (régression linéaire sur log)
-log_t = np.log(times)
-coeffs = np.polyfit(Q_tarr, log_t, 1)
-b_fit, a_fit = coeffs
-print(f"\n  Fit exponentiel : t(Q) ≈ exp({a_fit:.3f}) * exp({b_fit:.3f}*Q)")
-print(f"  Base implicite : 2^({b_fit/np.log(2):.3f}*Q)  "
-      f"(théorie : 2^Q → b/log2 ≈ 1)")
+# Ressources circuit quantique (ZZFeatureMap, reps=1)
+# CNOT: Q*(Q-1)/2 paires × 2 CX = Q*(Q-1)
+# Portes 1-qubit: 3Q  (Ry, Rz, Rz)
+Q_gate    = np.arange(2, 52, 2)
+n_cnot    = Q_gate * (Q_gate - 1)
+n_single  = Q_gate * 3
+gates_tot = n_cnot + n_single
 
-Q_fine2 = np.linspace(2, 20, 200)
-t_fit   = np.exp(a_fit + b_fit * Q_fine2)
-
-# Ressources circuit (formule analytique ZZFeatureMap, reps=1)
-def gate_count(Q, reps=1):
-    n_cnot   = reps * Q * (Q - 1)        # reps * Q*(Q-1)/2 paires * 2 CX
-    n_single = reps * Q * 3              # Ry, Rz, Rz par qubit
-    return n_cnot + n_single
-
-gates = np.array([gate_count(Q) for Q in Q_time])
-print("\n  Nombre de portes (ZZFeatureMap, reps=1) :")
-for Q, g in zip(Q_time, gates):
-    print(f"  Q={Q:2d}  portes={g:4d}")
+print("\n  Portes ZZFeatureMap (reps=1) :")
+for Q, g in zip(Q_gate[::2], gates_tot[::2]):
+    print(f"  Q={Q:2d}  total={g:5d}  (CNOT={Q*(Q-1):4d}, 1q={3*Q:3d})")
 
 # ─── Tracé Figure 2 ───────────────────────────────────────────
-fig, ax1 = plt.subplots(figsize=(9, 5))
+fig, axes = plt.subplots(1, 2, figsize=(11, 4.5))
 
-color1 = '#e74c3c'
-ax1.semilogy(Q_tarr, times * 1000, 'o', color=color1, ms=8, zorder=5,
-             label='Mesuré (numpy, $N=100$)')
-ax1.semilogy(Q_fine2, t_fit * 1000, '--', color=color1, alpha=0.7,
-             label=fr'Ajust. $\propto 2^{{{b_fit/np.log(2):.2f}Q}}$')
+# — Panneau gauche : mémoire simulation (exponentiel) —
+ax1 = axes[0]
+ax1.semilogy(Q_theory, mem_gb, 'o-', color='#e74c3c', lw=2, ms=5,
+             label=r'Simulation statevector ($2^Q \times 16\,$o)')
+for gb, label, ls, col in RAM_LIMITS:
+    ax1.axhline(gb, color=col, ls=ls, alpha=0.75, lw=1.4, label=label)
+    q_cross = np.log2(gb * 1e9 / 16)
+    if 2 <= q_cross <= 50:
+        ax1.axvline(q_cross, color=col, ls=':', alpha=0.35, lw=1)
+        ax1.text(q_cross + 0.5, gb * 1.5, f'$Q={q_cross:.0f}$',
+                 fontsize=7.5, color=col, va='bottom')
 ax1.set_xlabel('Nombre de qubits $Q$')
-ax1.set_ylabel('Temps de calcul (ms, échelle log)', color=color1)
-ax1.tick_params(axis='y', labelcolor=color1)
-ax1.set_xticks(Q_time)
-
-ax2 = ax1.twinx()
-color2 = '#3498db'
-ax2.plot(Q_time, gates, 's-', color=color2, ms=7, lw=2,
-         label='Portes circuit (ZZFeatureMap)')
-ax2.set_ylabel('Nombre de portes quantiques', color=color2)
-ax2.tick_params(axis='y', labelcolor=color2)
-
-# Annotation zone de croisement (extrapole simulation vers Q*)
-# t_simulation > t_hw au-delà de Q* ~ 50
-ax1.axvline(x=16, color='gray', ls=':', alpha=0.6, lw=1.5)
-ax1.text(16.2, times.max() * 1000 * 0.5, 'Limite\nlaptop\n~16 GB', fontsize=8.5,
-         color='gray', va='center')
-
-lines1, labels1 = ax1.get_legend_handles_labels()
-lines2, labels2 = ax2.get_legend_handles_labels()
-ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left', fontsize=9)
-
-ax1.set_title(
-    'Complexité simulation classique vs ressources circuit quantique',
-    fontsize=12)
+ax1.set_ylabel('Mémoire requise (Go, échelle log)')
+ax1.set_title('Simulation classique : $O(2^Q)$')
+ax1.set_xticks(Q_theory[::2])
+ax1.legend(fontsize=8, loc='upper left')
 ax1.grid(True, which='both', alpha=0.25)
+
+# — Panneau droit : ressources circuit (polynomial) —
+ax2 = axes[1]
+ax2.plot(Q_gate, n_cnot,    's--', color='#e74c3c', ms=5, lw=1.5,
+         label='CNOT  [$Q(Q-1)$]')
+ax2.plot(Q_gate, n_single,  'o--', color='#3498db', ms=5, lw=1.5,
+         label='1-qubit  [$3Q$]')
+ax2.plot(Q_gate, gates_tot, 'D-',  color='#2c3e50', ms=5, lw=2,
+         label='Total  [$Q^2+2Q$]')
+ax2.set_xlabel('Nombre de qubits $Q$')
+ax2.set_ylabel('Nombre de portes quantiques')
+ax2.set_title('Circuit ZZFeatureMap : $O(Q^2)$')
+ax2.set_xticks(Q_gate[::2])
+ax2.legend(fontsize=9)
+ax2.grid(True, alpha=0.25)
+
+fig.suptitle('Complexité : simulation classique (exponentielle) vs circuit quantique (polynomiale)',
+             fontsize=11, y=1.02)
 fig.tight_layout()
 fig.savefig(os.path.join(OUT_DIR, "fig_complexity.pdf"))
 plt.close(fig)
@@ -361,32 +353,36 @@ normal_mask  = ~outlier_mask
 
 fig, ax = plt.subplots(figsize=(9, 4.5))
 
-# Remplissage convergence
-ax.fill_between(iters, running_min, best_ev,
-                alpha=0.12, color='#3498db',
-                label='Zone de convergence (minimum courant)')
-
-ax.plot(iters[normal_mask], ev_hist[normal_mask], 'o-',
-        color='#3498db', ms=6, lw=1.5, label=r'$\langle H_C\rangle_\theta$')
+ax.plot(iters[normal_mask], ev_hist[normal_mask], 'o',
+        color='#3498db', ms=5, zorder=3, label=r'$\langle H_C\rangle_\theta$ (IBM Torino)')
+ax.plot(iters[normal_mask], ev_hist[normal_mask], '-',
+        color='#3498db', lw=1.2, alpha=0.5, zorder=2)
 ax.plot(iters[outlier_mask], ev_hist[outlier_mask], 'D',
         color='#e74c3c', ms=10, zorder=5,
-        label=f'Bruit hardware (iter {int(np.argmax(ev_hist))}, EV={ev_hist.max():.1f})')
-ax.plot(iters, running_min, '--', color='#2ecc71', lw=1.5, alpha=0.85,
+        label=f'Erreur hardware (iter\u00a0{int(np.argmax(ev_hist))}, '
+              f'EV\u00a0=\u00a0{ev_hist.max():.1f})')
+ax.plot(iters, running_min, '--', color='#2ecc71', lw=2, alpha=0.9,
         label='Minimum courant')
-ax.axhline(best_ev, color='#2c3e50', ls=':', lw=1.5, alpha=0.7,
-           label=f'$E^*_{{\\mathrm{{HW}}}}={best_ev:.2f}$')
+ax.axhline(best_ev, color='#2c3e50', ls=':', lw=1.5,
+           label=f'$E^* = {best_ev:.2f}$ (iter\u00a0{int(np.argmin(ev_hist))})')
 
 ax.set_xlabel('Itération COBYLA')
-ax.set_ylabel(r'$\langle H_C\rangle_\theta$ (IBM Torino, Heron r2)')
+ax.set_ylabel(r'$\langle H_C\rangle_\theta$')
 ax.set_title(
-    'Convergence QAOA sur IBM Torino — $d=12$, $M=3$, $Q=4$, $p=1$',
-    fontsize=12)
+    'QAOA sur IBM Torino — données expérimentales réelles\n'
+    r'$d=12$, $M=3$, $Q=4$ $\Rightarrow$ 36 qubits, backend\,: ibm\_torino (Heron r2)',
+    fontsize=11)
 ax.set_xticks(iters)
 ax.xaxis.set_tick_params(labelsize=8)
-ax.legend(fontsize=9, loc='lower left')
+ax.legend(fontsize=9, loc='upper right')
 ax.grid(True, alpha=0.3)
-ax.annotate('Quota\népuisé', xy=(21, ev_hist[-1]), xytext=(19.5, ev_hist[-1] - 3),
-            arrowprops=dict(arrowstyle='->', color='gray'), fontsize=8.5, color='gray')
+
+# Annotation quota épuisé
+ev_last = ev_hist[normal_mask][-1]
+ax.annotate('Quota épuisé\n(22 / 50\u00a0iter.)', xy=(21, ev_last),
+            xytext=(17.5, ev_last + 4),
+            arrowprops=dict(arrowstyle='->', color='gray', lw=1.2),
+            fontsize=8.5, color='#555555')
 
 fig.tight_layout()
 fig.savefig(os.path.join(OUT_DIR, "fig_hw_convergence.pdf"))
@@ -486,7 +482,7 @@ def assign_qubo_greedy(X, y, Q, M):
 print("  Calcul des AUC (peut prendre ~60s)...")
 methods = {
     'Aléatoire': assign_random,
-    'Non-chevauchant': assign_nonoverlap,
+    'Blocs fixes': assign_nonoverlap,   # features 0..Q-1 → K0, Q..2Q-1 → K1, etc.
     'QUBO-Greedy': assign_qubo_greedy,
 }
 results = {}
@@ -548,9 +544,9 @@ for i, Q in enumerate(Q_vals):
     print(f"{Q:>4}  {sigma_z[i]:>12.5f}  {sigma_zz[i]:>13.5f}  {auc_Q[i]:>10.4f}")
 print(f"\nFit K_Z  : σ ~ {pz[0]:.4f}·exp(-{pz[1]:.4f}·Q)")
 print(f"Fit K_ZZ : σ ~ {pzz[0]:.4f}·exp(-{pzz[1]:.4f}·Q)")
-print(f"\nTemps simulation K_ZZ (N=100) :")
-for Q, t in zip(Q_time, times):
-    print(f"  Q={Q:2d}  t={t*1000:8.2f} ms")
+print(f"\nMémoire statevector (Go) :")
+for Q, m in zip(Q_theory[::4], mem_gb[::4]):
+    print(f"  Q={Q:2d}  mem={m:.3g} Go")
 print(f"\nAUC comparatif assignations (Q={Q_v2}, M={M_v2}) :")
 for n, (m, s) in results.items():
     print(f"  {n:22s}  {m:.4f} ± {s:.4f}")
