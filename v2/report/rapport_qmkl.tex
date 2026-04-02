@@ -622,20 +622,31 @@ Plusieurs causes expliquent les performances inférieures de QMKL en v1 :
 \end{enumerate}
 
 % ================================================================
-\section{Projet V2 — QMKL-v2 : Assignation QUBO}
+\section{Assignation Optimale de Features par QUBO}
 \label{sec:v2}
 
 \subsection{Motivation}
 
-Le projet v2 part du constat que la réduction ACP globale constitue le
-principal goulot d'étranglement de v1.
-L'idée centrale est de remplacer cette réduction uniforme par une
-\emph{assignation optimale} : des sous-ensembles de features disjoints
-sont affectés à différents noyaux quantiques, de sorte que l'ensemble
-des $M$ noyaux couvre collectivement l'espace des $d$ features originales.
-Chaque noyau opère sur $Q$ features — dans le régime sûr vis-à-vis des
-barren plateaus — et le noyau composite MKL bénéficie de la complémentarité
-des sous-espaces.
+L'évaluation empirique de la section précédente met en évidence que la
+réduction ACP globale constitue le principal goulot d'étranglement du QMKL :
+projeter $d = 20$--$30$ features sur $Q = 4$--$6$ composantes élimine la
+majorité de la variance explicative, annulant le bénéfice potentiel de
+l'encodage quantique.
+
+L'idée centrale de cette seconde phase est de remplacer cette réduction
+uniforme par une \emph{assignation optimale} : des sous-ensembles de features
+disjoints sont affectés à différents noyaux quantiques, de sorte que
+l'ensemble des $M$ noyaux couvre collectivement les $d$ features originales
+sans perte.
+Chaque noyau opère sur exactement $Q$ features --- maintenu dans le régime
+sûr vis-à-vis des barren plateaus ($Q \leq 6$) --- et le noyau composite MKL
+bénéficie de la complémentarité des sous-espaces.
+
+La question clé est donc : parmi les $\binom{d}{Q}^M$ façons de distribuer
+$d$ features entre $M$ noyaux de $Q$ qubits, quelle assignation maximise la
+qualité discriminante du noyau composite ?
+Ce problème combinatoire est formulé comme un QUBO et résolu par différents
+solveurs, dont QAOA sur hardware quantique réel.
 
 \begin{figure}[H]
 \centering
@@ -653,9 +664,9 @@ nette entre noyaux que la pondération MKL peut exploiter.}
 \label{fig:alignment}
 \end{figure}
 
-\subsection{Jeu de données V2}
+\subsection{Jeu de données}
 
-Les expériences de v2 utilisent le jeu de données \textbf{Breast Cancer}
+Les expériences utilisent le jeu de données \textbf{Breast Cancer}
 (scikit-learn, $N=569$, $d=30$ features, classification binaire tumeur
 maligne/bénigne) comme banc d'essai pour l'assignation QUBO.
 Ce choix est motivé par la disponibilité d'un signal fort et reproductible,
@@ -707,8 +718,122 @@ QAOA ($p$ couches) & $O(n \cdot 2^n)$ sim. & Approx. & Avantage HW pour $n > 20$
 Le recuit simulé démarre depuis une solution faisable (assignation
 non-chevauchante) et effectue des retournements de bits aléatoires
 acceptés selon un critère de Metropolis avec refroidissement logarithmique.
-Le QAOA minimise la valeur propre moyenne $\langle H_C \rangle$ par
-descente COBYLA avec redémarrages multiples pour $p \leq 2$.
+Le QAOA minimise la valeur attendue $\langle H_C \rangle$ par
+l'optimiseur sans dérivées COBYLA, décrit en détail ci-dessous.
+
+\subsection{Optimisation variationnelle dans QAOA}
+\label{sec:qaoa_optim}
+
+\subsubsection{De la matrice QUBO à l'Hamiltonien de coût $H_C$}
+
+La matrice $Q_{\mathrm{QUBO}}$ encode l'énergie d'assignation comme une forme
+quadratique sur les bits : $E(\bm{x}) = \bm{x}^T Q_{\mathrm{QUBO}}\,\bm{x}$.
+Pour résoudre ce problème sur un ordinateur quantique, chaque variable binaire
+$x_i \in \{0,1\}$ est traduite en un qubit via le changement de variable
+$x_i = (I - Z_i)/2$, où $Z_i$ est l'opérateur de Pauli~$Z$ agissant sur le
+qubit~$i$.
+On obtient l'\emph{Hamiltonien de coût}
+\begin{equation}
+  H_C \;=\; \sum_{i \leq j} Q_{ij}\,\hat{n}_i\,\hat{n}_j,
+  \qquad \hat{n}_i = \frac{I - Z_i}{2},
+  \label{eq:hc_detail}
+\end{equation}
+opérateur hermitien dont les \emph{valeurs propres} sont exactement les énergies
+QUBO de chaque configuration $\bm{x}$.
+Trouver l'assignation optimale $\bm{x}^*$ revient donc à trouver l'état propre
+de plus basse énergie (\emph{état fondamental}) de $H_C$.
+
+Concrètement, $H_C$ est une somme de termes $Z_iZ_j$ (interactions à deux qubits,
+dont les coefficients $Q_{ij}$ codent les pénalités de chevauchement $\lambda$ et
+les contraintes $\mu$) et de termes $Z_i$ (champs locaux, dont les coefficients
+codent les alignements marginaux $-a_{k,m}$).
+
+\subsubsection{L'ansatz QAOA et la boucle d'optimisation}
+
+L'ansatz QAOA à $p$ couches prépare l'état quantique paramétré
+\begin{equation}
+  |\bm{\theta}\rangle
+  = \prod_{l=1}^{p}
+    \underbrace{e^{-i\beta_l H_B}}_{\substack{\text{opérateur de} \\ \text{mélange}}}
+    \underbrace{e^{-i\gamma_l H_C}}_{\substack{\text{opérateur de} \\ \text{phase}}}
+  \,|+\rangle^{\otimes n},
+  \label{eq:qaoa_detail}
+\end{equation}
+où $H_B = \sum_i X_i$ est l'Hamiltonien de mélange (rotations $R_X$ indépendantes
+sur chaque qubit) et $\bm{\theta} = (\beta_1, \gamma_1, \ldots, \beta_p, \gamma_p)
+\in \mathbb{R}^{2p}$ sont les paramètres à optimiser.
+
+\begin{itemize}
+  \item L'opérateur de \textbf{phase} $e^{-i\gamma_l H_C}$ modifie l'amplitude
+    de chaque état de base proportionnellement à son énergie QUBO : les
+    assignations de faible énergie accumulent une phase relative différente des
+    mauvaises assignations, créant progressivement une interférence constructive
+    vers l'état fondamental.
+  \item L'opérateur de \textbf{mélange} $e^{-i\beta_l H_B}$ redistribue les
+    amplitudes entre états voisins (exploration de l'espace des solutions),
+    à la manière d'une diffusion quantique.
+\end{itemize}
+
+La quantité à minimiser est la valeur attendue de l'énergie :
+\begin{equation}
+  f(\bm{\theta}) = \langle\bm{\theta}|H_C|\bm{\theta}\rangle
+  \;=\; \sum_{i \leq j} Q_{ij}\,
+  \bigl\langle\hat{n}_i\,\hat{n}_j\bigr\rangle_{\!\bm{\theta}}.
+  \label{eq:cost}
+\end{equation}
+Sur hardware quantique, $f(\bm{\theta})$ est estimée par le primitif
+\texttt{Estimator} d'IBM Quantum, qui retourne la valeur attendue d'un observable
+sans tomographie d'état complète --- ce qui est bien plus économe en nombre de
+shots que la mesure directe de $\langle H_C \rangle$ par histogramme.
+
+\subsubsection{Pourquoi COBYLA plutôt que la descente de gradient ?}
+
+Une descente de gradient classique nécessite $\partial f / \partial \theta_k$
+pour chacun des $2p$ paramètres.
+Sur circuit quantique, chaque dérivée partielle s'obtient par la
+\emph{règle du décalage de paramètre} : deux évaluations supplémentaires
+du circuit à $\theta_k \pm \pi/2$, soit $4p + 1$ évaluations par
+itération au lieu d'une seule.
+Avec $p=1$ (2 paramètres), cela représente 5 jobs par itération contre~1
+pour COBYLA --- un facteur limitant sous quota restreint.
+
+Surtout, les gradients de circuits bruités de grande profondeur souffrent
+eux-mêmes du phénomène de barren plateau (Section~\ref{sec:nb01}) : leur
+variance décroît exponentiellement avec le nombre de qubits $n$, les rendant
+inexploitables dès $n \gtrsim 20$.
+COBYLA (\emph{Constrained Optimization By Linear Approximation}) est un
+optimiseur \emph{sans dérivées} : à chaque itération, il construit un modèle
+linéaire local de $f$ à partir des évaluations précédentes, puis se déplace
+dans la direction de descente approchée.
+Pour $p=1$, l'espace de recherche est de dimension~2 (un seul couple
+$(\beta,\gamma)$), ce qui rend COBYLA particulièrement adapté.
+
+\subsubsection{Déroulement de la boucle itérative}
+
+L'optimisation se déroule selon le cycle suivant :
+
+\begin{enumerate}
+  \item \textbf{Initialisation} : les paramètres $\bm{\theta}^{(0)}$ sont
+    tirés aléatoirement dans $[0,\pi]^{2p}$.
+  \item \textbf{Préparation du circuit} : on construit le circuit QAOA
+    $|\bm{\theta}^{(t)}\rangle$ selon~\eqref{eq:qaoa_detail} et on le transpile
+    sur le backend IBM Torino (133 qubits physiques).
+  \item \textbf{Évaluation quantique} : un job \texttt{Estimator} est soumis au
+    hardware et retourne $f(\bm{\theta}^{(t)}) = \langle H_C\rangle$.
+  \item \textbf{Mise à jour} : COBYLA reçoit $f(\bm{\theta}^{(t)})$, met à jour
+    son modèle local, et propose $\bm{\theta}^{(t+1)}$ minimisant ce modèle.
+  \item \textbf{Répétition} des étapes~2 à~4 jusqu'à convergence ou épuisement
+    du quota de calcul.
+  \item \textbf{Extraction de la solution} : depuis les paramètres optimaux
+    $\bm{\theta}^*$, on échantillonne le circuit (job \texttt{Sampler}) pour
+    obtenir le bitstring $\bm{x}^*$ de plus basse énergie observée, que l'on
+    décode en une assignation features~$\to$~noyaux.
+\end{enumerate}
+
+L'itération~3 est la seule étape quantique ; toutes les autres s'exécutent
+classiquement.
+C'est ce paradigme hybride classique-quantique qui caractérise les algorithmes
+variationnels de type VQE/QAOA.
 
 \subsection{Étude empirique NB01 — Barren Plateaus}
 \label{sec:nb01}
@@ -731,8 +856,8 @@ conserve une variabilité discriminante suffisante.
 En revanche, la combinaison QMKL avec $M = 5$ noyaux indépendants de
 $Q = 4$ qubits chacun permet de retrouver une AUC comparable à celle du
 meilleur noyau unique à $Q = 4$, tout en utilisant collectivement 20 features.
-Cela valide le principe de v2 : répartir les features entre noyaux maintenus
-dans le régime sûr ($Q \leq 6$).
+Cela valide le principe de l'approche : répartir les features entre noyaux
+maintenus dans le régime sûr ($Q \leq 6$).
 
 \begin{table}[H]
 \centering
@@ -827,21 +952,23 @@ pour $n > 20$.
 
 \subsubsection{Données récupérées}
 
-22 jobs de type Estimator ont été exécutés avant l'épuisement du quota
-(22 itérations COBYLA, valeurs consignées dans \texttt{qaoa\_hw\_d12\_M3\_Q4.json}).
-Chaque job retourne la valeur propre attendue
-$\langle H_C \rangle_{\bm{\theta}}$ pour une valeur de
-$\bm{\theta} = (\beta, \gamma)$ proposée par COBYLA.
-La meilleure valeur atteinte est $\langle H_C \rangle^* = -24.21$ à l'itération~5.
-La convergence est bruitée : un événement aberrant à l'itération~20
-retourne $\langle H_C \rangle = +11.77$, valeur positive incohérente avec
-l'énergie de l'état fondamental, caractéristique d'une erreur hardware.
-COBYLA reprend ensuite normalement depuis la dernière configuration valide.
+La boucle itérative décrite en Section~\ref{sec:qaoa_optim} a été exécutée
+sur IBM Torino pour 22 itérations COBYLA avant épuisement du quota de 4~minutes
+(valeurs consignées dans \texttt{qaoa\_hw\_d12\_M3\_Q4.json}).
+Conformément à l'étape~3 de la boucle, chaque itération soumet un job
+\texttt{Estimator} qui retourne $\langle H_C\rangle_{\bm{\theta}}$ pour le
+couple $(\beta, \gamma)$ courant proposé par COBYLA.
+La meilleure énergie atteinte est $\langle H_C\rangle^* = -24.21$
+à l'itération~5.
+La trajectoire est bruitée : un événement aberrant à l'itération~20
+retourne $\langle H_C\rangle = +11.77$, valeur positive physiquement
+incohérente avec l'énergie fondamentale, caractéristique d'une erreur hardware
+transitoire.
+COBYLA reprend normalement depuis la dernière configuration valide.
 
-En revanche, l'absence de job Sampler (non réalisé faute de quota) empêche
-d'extraire un bitstring solution et donc de comparer directement l'AUC du
-QAOA hardware à celle du recuit simulé.
-L'assignation finale a été obtenue par recuit simulé, dont les performances
+L'étape~6 (job \texttt{Sampler} pour extraire un bitstring solution) n'a pas pu
+être réalisée faute de quota.
+L'assignation finale a donc été obtenue par recuit simulé, dont les performances
 sont présentées ci-dessous.
 
 \begin{figure}[H]
