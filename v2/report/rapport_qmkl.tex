@@ -391,17 +391,6 @@ En développant \eqref{eq:qubo}, on obtient une représentation quadratique
 $E(\bm{x}) = \bm{x}^T Q_{\mathrm{QUBO}}\,\bm{x}$ avec $Q_{\mathrm{QUBO}}$
 triangulaire supérieure de taille $(dM)\times(dM)$.
 
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.55\textwidth]{figures/fig_qubo_matrix.pdf}
-\caption{Matrice QUBO $Q_{\mathrm{QUBO}} \in \mathbb{R}^{24 \times 24}$
-pour l'instance $d=8$, $M=3$, $Q=3$
-($\lambda=2.0$, $\mu=5.0$, alignements $a_{k,m}$ aléatoires uniformes dans $[0,1]$).
-La diagonale (termes linéaires) domine les blocs hors-diagonale
-(pénalités de chevauchement), avec des blocs distincts par noyau
-visibles dans la structure.}
-\label{fig:qubo_matrix}
-\end{figure}
 
 \subsubsection{Conversion en Hamiltonien d'Ising}
 
@@ -563,6 +552,19 @@ Bank Marketing).
 Sur Breast Cancer, les performances sont statistiquement équivalentes
 ($p = 0.14$).
 
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{figures/fig1_v1_results.pdf}
+\caption{Résultats V1 --- AUC-ROC ($Q=6$, $M=12$, $N=200$, 4-fold $\times$ 20 tirages).
+En bleu : stratégies QMKL ; en rouge : classifieurs de référence.
+Sur German Credit, le meilleur QMKL (Moyenne, $0.763$) est inférieur de
+$7{,}2$ points au RBF-SVM ($0.835$).
+Sur Bank Marketing, l'écart atteint $9{,}3$ points (QMKL-BO $0.774$ vs
+Régression logistique $0.867$).
+Les barres d'erreur représentent un écart-type sur 20 tirages.}
+\label{fig:v1results}
+\end{figure}
+
 \subsection{Analyses complémentaires}
 
 \paragraph{Ablation sur $Q$.}
@@ -633,6 +635,22 @@ des $M$ noyaux couvre collectivement l'espace des $d$ features originales.
 Chaque noyau opère sur $Q$ features — dans le régime sûr vis-à-vis des
 barren plateaus — et le noyau composite MKL bénéficie de la complémentarité
 des sous-espaces.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{figures/fig3_alignment.pdf}
+\caption{Scores d'alignement marginal $a_k = A(K_Z^{(k)}, K_y^c)$ pour les 12
+premières features de Breast Cancer ($N=200$, $Q=4$, $M=3$),
+colorés selon le noyau auquel la feature est assignée.
+\textbf{Gauche --- Blocs fixes} : les features sont groupées par indice consécutif
+($k_{0..3} \to K_0$, $k_{4..7} \to K_1$, $k_{8..11} \to K_2$) sans tenir compte
+de leur qualité discriminante ($\bar{a}(K_0)=0.105$, $\bar{a}(K_1)=0.142$,
+$\bar{a}(K_2)=0.050$).
+\textbf{Droite --- QUBO-Greedy} : les features les plus discriminantes
+sont concentrées dans $K_0$ ($\bar{a}(K_0)=0.177$), créant une hiérarchie
+nette entre noyaux que la pondération MKL peut exploiter.}
+\label{fig:alignment}
+\end{figure}
 
 \subsection{Données FRED}
 
@@ -713,14 +731,13 @@ $Q \in \{2, 4, 6, 8, 10, 12\}$ sur le jeu de données German Credit.
 Les deux métriques $\sigma_{\mathrm{off}}$ et $\mathrm{GradVar}$ décroissent
 toutes deux de manière compatible avec une loi en $2^{-Q}$, confirmant le
 phénomène prédit théoriquement.
-Pour le noyau $K_Z$ sur Breast Cancer, l'AUC reste au niveau aléatoire
-($\approx 0.5$) \emph{pour tous} $Q$, ce qui indique que le noyau $K_Z$ avec
-scaling $[0, 2\pi]$ et $\alpha=1.0$ est inefficace dans ce régime
-(les valeurs hors-diagonale tendent vers $0$ plutôt que vers $1$,
-rendant la matrice noyau presque nulle).
-Pour les noyaux $K_{ZZ}$ sur German Credit, la dégradation de l'AUC
-se manifeste dès $Q \approx 6$--8 (le seuil exact dépend de la famille de noyau
-et du jeu de données).
+Pour $K_{ZZ}$, la décroissance est encore plus rapide : $\sigma_{\mathrm{off}}$
+tombe à $4 \times 10^{-5}$ dès $Q=6$, soit une concentration pratiquement
+totale.
+La Figure~\ref{fig:barren} illustre ces décroissances avec leurs ajustements
+exponentiels, confirmant quantitativement la borne théorique $O(2^{-Q})$.
+Le seuil $Q \approx 6$--8 délimite le régime où la matrice noyau
+conserve une variabilité discriminante suffisante.
 En revanche, la combinaison QMKL avec $M = 5$ noyaux indépendants de
 $Q = 4$ qubits chacun permet de retrouver une AUC comparable à celle du
 meilleur noyau unique à $Q = 4$, tout en utilisant collectivement 20 features.
@@ -744,14 +761,15 @@ $K_{ZZ}$ & 0.199 & 0.009 & $4\times10^{-5}$ & $\approx0$ & $\approx0$ & $\approx
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=\textwidth]{figures/fig_barren_plateau.pdf}
-\caption{Gauche : décroissance de $\sigma_{\mathrm{off}}(K)$ en fonction de $Q$ pour $K_Z$ et
-$K_{ZZ}$, avec ajustements exponentiels
-($K_Z$: $0.696\,e^{-0.442\,Q}$~;~$K_{ZZ}$: $4.485\,e^{-1.557\,Q}$).
-Droite : AUC d'un noyau $K_Z$ unique en fonction de $Q$ sur Breast Cancer ---
-l'AUC reste au niveau aléatoire ($\approx 0.5$) \emph{pour tous} $Q \in \{2,\ldots,12\}$,
-attestant que la concentration rend le noyau $K_Z$ inefficace indépendamment du nombre
-de qubits dans ce régime de prétraitement ($\alpha=1.0$, scaling $[0,2\pi]$).}
+\includegraphics[width=0.75\textwidth]{figures/fig2_barren_plateau.pdf}
+\caption{Décroissance de $\sigma_{\mathrm{off}}(K)$ en fonction de $Q$
+pour $K_Z$ ($0.696\,e^{-0.442\,Q}$) et $K_{ZZ}$ ($4.485\,e^{-1.557\,Q}$),
+mesurée sur $N=80$ points aléatoires uniformes sur $[0,2\pi]^Q$.
+La décroissance exponentielle, cohérente avec la borne théorique $O(2^{-Q})$,
+confirme le phénomène de barren plateau.
+Le seuil $Q \approx 6$ délimite le régime sûr (zone verte) :
+au-delà, $\sigma_{\mathrm{off}}(K_{ZZ}) < 10^{-4}$ et la matrice noyau
+est quasi-constante, impropre à toute discrimination supervisée.}
 \label{fig:barren}
 \end{figure}
 
@@ -782,20 +800,6 @@ qubits pour des machines futures avec un taux d'erreur inférieur à
 $10^{-3}$.
 Dans le régime actuel ($Q \leq 6$), le simulateur classique reste toujours
 plus efficace.
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=\textwidth]{figures/fig_complexity.pdf}
-\caption{Gauche : mémoire requise pour la simulation par vecteur d'état
-($2^Q \times 16$\,o en complexe 128 bits) en fonction de $Q$ ---
-la croissance exponentielle rend la simulation impraticable
-au-delà de $Q \approx 29$ (laptop, 8\,Go), $Q \approx 32$ (workstation, 64\,Go)
-et $Q \approx 46$ (data center, $10^6$\,Go).
-Droite : nombre de portes du circuit ZZFeatureMap en fonction de $Q$ ---
-CNOT $= Q(Q-1)$ et portes 1-qubit $= 3Q$, soit une croissance polynomiale $O(Q^2)$,
-incomparablement plus favorable que la simulation classique.}
-\label{fig:complexity}
-\end{figure}
 
 \subsection{Expérience sur hardware IBM Torino}
 \label{sec:hardware}
@@ -852,7 +856,7 @@ sont présentées ci-dessous.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.75\textwidth]{figures/fig_hw_convergence.pdf}
+\includegraphics[width=0.75\textwidth]{figures/fig5_hw_convergence.pdf}
 \caption{Exécution QAOA sur IBM Torino (Heron~r2) : données expérimentales réelles,
 22~itérations COBYLA pour l'instance $d=12$, $M=3$, $Q=4$ (36~qubits).
 La courbe verte (minimum courant) montre la progression de l'optimiseur ;
@@ -894,7 +898,7 @@ Le RBF-SVM classique reste supérieur de $+2.2$ points d'AUC.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.65\textwidth]{figures/fig_auc_comparison.pdf}
+\includegraphics[width=0.65\textwidth]{figures/fig4_auc_comparison.pdf}
 \caption{AUC-ROC moyenne ($\pm$ écart-type) pour trois stratégies d'assignation
 de features et la référence RBF-SVM, sur Breast Cancer
 ($d=10$, $M=3$, $Q=3$, 5-fold $\times$ 20~tirages).
