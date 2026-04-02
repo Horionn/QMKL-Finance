@@ -1,0 +1,24 @@
+\babel@toc {french}{}\relax 
+\contentsline {section}{\numberline {1}Slide 1 — Titre}{3}{section.1}%
+\contentsline {section}{\numberline {2}Slide 2 — Plan}{3}{section.2}%
+\contentsline {section}{\numberline {3}Slide 3 — Pourquoi le Machine Learning Quantique en finance ?}{3}{section.3}%
+\contentsline {section}{\numberline {4}Slide 4 — Les 3 datasets financiers testés}{4}{section.4}%
+\contentsline {section}{\numberline {5}Slide 5 — Du tableau bancaire au circuit quantique : le pipeline}{5}{section.5}%
+\contentsline {section}{\numberline {6}Slide 6 — Comment les données sont encodées dans un circuit quantique}{6}{section.6}%
+\contentsline {section}{\numberline {7}Slide 7 — Les 12 kernels quantiques : géométrie de similarité}{6}{section.7}%
+\contentsline {section}{\numberline {8}Slide 8 — Comment fonctionne chaque stratégie QMKL ?}{8}{section.8}%
+\contentsline {section}{\numberline {9}Slide 9 — Résultat 1 : QMKL vs méthodes classiques}{8}{section.9}%
+\contentsline {section}{\numberline {10}Slide 10 — Résultat 2 : Classement détaillé sur German Credit}{9}{section.10}%
+\contentsline {section}{\numberline {11}Slide 11 — Résultat 3 : Plus de données n'efface pas l'écart}{9}{section.11}%
+\contentsline {section}{\numberline {12}Slide 12 — Les 5 stratégies QMKL face à face}{10}{section.12}%
+\contentsline {section}{\numberline {13}Slide 13 — Quelle stratégie QMKL choisir ?}{10}{section.13}%
+\contentsline {section}{\numberline {14}Slide 14 — Quels kernels apportent le plus ? (Analyse Shapley)}{11}{section.14}%
+\contentsline {section}{\numberline {15}Slide 15 — QMKL-Boost : sélection intelligente des kernels}{12}{section.15}%
+\contentsline {section}{\numberline {16}Slide 16 — La matrice Q — comment QUBO choisit les kernels}{12}{section.16}%
+\contentsline {section}{\numberline {17}Slide 16b — Quand le quantique devient-il indispensable pour QUBO ?}{13}{section.17}%
+\contentsline {section}{\numberline {18}Slide 18 — La limite fondamentale : barren plateaus}{14}{section.18}%
+\contentsline {section}{\numberline {19}Slide 19 — Test sur IBM Torino : kernels réels vs simulation}{15}{section.19}%
+\contentsline {section}{\numberline {20}Slide 20 — IBM Torino : robustesse des stratégies MKL face au bruit}{16}{section.20}%
+\contentsline {section}{\numberline {21}Slide 21 — Ce que ça veut dire pour la banque}{16}{section.21}%
+\contentsline {section}{\numberline {22}Slide 22 — Merci / Questions}{17}{section.22}%
+\contentsline {section}{Annexe — Questions classiques à anticiper}{18}{section.22}%
